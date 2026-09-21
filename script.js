@@ -1,3 +1,5 @@
+@@ -1 +1,1289 @@
+Unsupported Media Type
 const characters = {
   nafasio: {
     name: 'NAFASIO',
@@ -547,75 +549,37 @@ function createYouTubePlayer(id, videoIndex) {
 
             events: {
 
-             onReady: event => {
+              onReady: event => {
 
-  const overlay =
-    document.getElementById(
-      'videoInstruction'
-    );
+                const overlay =
+                  document.getElementById(
+                    'videoInstruction'
+                  );
 
-  if (overlay) {
-    overlay.textContent =
-      'Tekan ▶️ untuk mula menonton video.';
-  }
+                if (overlay) {
 
-  const iframe =
-    event.target.getIframe();
+                  overlay.textContent =
+                    'Tekan ▶️ untuk mula menonton video.';
+                }
+              },
 
-  iframe.setAttribute(
-    'allowfullscreen',
-    'true'
-  );
+              onStateChange: event => {
 
-  iframe.setAttribute(
-    'allow',
-    'fullscreen'
-  );
+                if (
+                  event.data ===
+                  YT.PlayerState.ENDED
+                ) {
 
-  const fullscreenBtn =
-    document.getElementById(
-      'fullscreenBtn'
-    );
-
-  if (fullscreenBtn) {
-
-    fullscreenBtn.onclick = async () => {
-
-      try {
-
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-          return;
-        }
-
-        if (
-          iframe.requestFullscreen
-        ) {
-
-          await iframe.requestFullscreen();
-          return;
-        }
-
-        window.open(
-          `https://www.youtube.com/watch?v=${video.id}`,
-          '_blank'
+                  markVideoComplete(
+                    id,
+                    videoIndex
+                  );
+                }
+              }
+            }
+          }
         );
-
-      } catch (error) {
-
-        console.error(
-          'Fullscreen gagal:',
-          error
-        );
-
-        window.open(
-          `https://www.youtube.com/watch?v=${video.id}`,
-          '_blank'
-        );
-      }
-    };
-  }
-},
+    })
     .catch(err => {
 
       console.error(
@@ -794,7 +758,7 @@ function renderVideoStage(id) {
           "
         ></div>
 
-                <div
+        <div
           id="videoInstruction"
           style="
             position:absolute;
@@ -810,26 +774,6 @@ function renderVideoStage(id) {
             pointer-events:none;
           "
         >
-          Memuatkan video...
-        </div>
-
-      </div>
-
-      <div
-        style="
-          display:flex;
-          justify-content:center;
-          margin-top:12px;
-        "
-      >
-        <button
-          class="secondary"
-          id="fullscreenBtn"
-          type="button"
-        >
-          ⛶ Besarkan Skrin
-        </button>
-      </div>
           Memuatkan video...
         </div>
 
