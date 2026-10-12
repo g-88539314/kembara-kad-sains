@@ -1,0 +1,2137 @@
+<!DOCTYPE html>
+
+<html lang="ms">
+
+<head>
+
+       <meta charset="UTF-8">
+
+       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+       <title>Fishing Game: Memancing Jawapan Sains</title>
+
+       <!-- Tailwind CSS CDN -->
+
+       <script src="https://cdn.tailwindcss.com"></script>
+
+       <style>
+
+           @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@600;800;900&display=swap');
+
+
+
+           * {
+
+               user-select: none;
+
+               -webkit-user-select: none;
+
+               box-sizing: border-box;
+
+               touch-action: manipulation;
+
+           }
+
+
+
+           body {
+
+               font-family: 'Fredoka', 'Nunito', sans-serif;
+
+               background-color: #0c1829;
+
+               color: #ffffff;
+
+               margin: 0;
+
+               padding: 0;
+
+               overflow: hidden;
+
+               height: 100vh;
+
+               width: 100vw;
+
+           }
+
+
+
+           /* Responsive canvas wrapper */
+
+           #game-container {
+
+               position: relative;
+
+               width: 100%;
+
+               height: 100vh;
+
+               max-width: 1024px;
+
+               margin: 0 auto;
+
+               background: linear-gradient(to bottom, #87ceeb 0%, #3aafc9 20%, #106494 60%, #062b47 100%);
+
+               overflow: hidden;
+
+               box-shadow: 0 0 30px rgba(0,0,0,0.5);
+
+           }
+
+
+
+           canvas {
+
+               display: block;
+
+               width: 100%;
+
+               height: 100%;
+
+           }
+
+
+
+           /* Glassmorphic UI overlays */
+
+           .glass-panel {
+
+               background: rgba(12, 35, 64, 0.85);
+
+               backdrop-filter: blur(8px);
+
+               border: 2px solid rgba(255, 255, 255, 0.2);
+
+               border-radius: 1rem;
+
+           }
+
+
+
+           .btn-action {
+
+               transition: all 0.15s ease;
+
+               box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+
+           }
+
+
+
+           .btn-action:active {
+
+               transform: translateY(4px);
+
+               box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+
+           }
+
+
+
+           /* Animated keyframes for UI glow */
+
+           @keyframes pulse-glow {
+
+               0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+
+               50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.9); }
+
+           }
+
+
+
+           .glow-gold {
+
+               animation: pulse-glow 2s infinite;
+
+           }
+
+
+
+           /* Custom Scrollbar for modal content if needed */
+
+           ::-webkit-scrollbar {
+
+               width: 8px;
+
+           }
+
+           ::-webkit-scrollbar-track {
+
+               background: rgba(0,0,0,0.2);
+
+               border-radius: 4px;
+
+           }
+
+           ::-webkit-scrollbar-thumb {
+
+               background: #3b82f6;
+
+               border-radius: 4px;
+
+           }
+
+       </style>
+
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-slate-900">
+
+
+
+<div id="game-container">
+
+       <!-- CANVAS FOR GAME WORLD -->
+
+       <canvas id="gameCanvas"></canvas>
+
+
+
+       <!-- TOP HEADER / HUD OVERLAY -->
+
+       <div id="hud-panel" class="absolute top-2 left-2 right-2 flex flex-col gap-2 pointer-events-none z-10">
+
+           <!-- Top bar controls & stats -->
+
+           <div class="flex justify-between items-center bg-slate-900/80 backdrop-blur-md p-2 px-3 rounded-2xl border border-sky-400/30 shadow-lg">
+
+               <!-- Left: Question Tracker -->
+
+               <div class="flex items-center gap-2">
+
+                   <span class="bg-amber-500 text-slate-950 font-black px-2.5 py-1 rounded-xl text-xs md:text-sm tracking-wide">
+
+                       SOALAN <span id="hud-q-num">1</span>/10
+
+                   </span>
+
+                   <div class="hidden sm:block w-32 bg-slate-700 h-3 rounded-full overflow-hidden border border-slate-600">
+
+                       <div id="hud-progress-bar" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full w-10 transition-all duration-300"></div>
+
+                   </div>
+
+               </div>
+
+
+
+               <!-- Center: Title -->
+
+               <div class="text-center hidden md:block">
+
+                   <h1 class="text-amber-300 font-extrabold text-sm tracking-wider uppercase drop-shadow">Kembara Kad Sains Year 4</h1>
+
+               </div>
+
+
+
+               <!-- Right: Score & Audio controls -->
+
+               <div class="flex items-center gap-2 pointer-events-auto">
+
+                   <div class="bg-emerald-600/90 text-white font-extrabold px-3 py-1 rounded-xl text-xs md:text-sm flex items-center gap-1 shadow border border-emerald-400/40">
+
+                       <span>⭐</span>
+
+                       <span id="hud-score">0</span> <span class="text-xs font-normal opacity-80">Mata</span>
+
+                   </div>
+
+                   <button id="btn-mute" class="bg-slate-800 hover:bg-slate-700 text-amber-300 p-1.5 rounded-xl border border-slate-600 text-base flex items-center justify-center w-9 h-9" title="Bunyi On/Off">
+
+                       🔊
+
+                   </button>
+
+                   <button id="btn-pause" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-1.5 rounded-xl border border-slate-600 text-base flex items-center justify-center w-9 h-9" title="Jeda">
+
+                       ⏸️
+
+                   </button>
+
+               </div>
+
+           </div>
+
+
+
+           <!-- Question Banner -->
+
+           <div id="question-card" class="bg-gradient-to-r from-sky-900/90 via-indigo-900/90 to-sky-900/90 text-white p-3 sm:p-4 rounded-2xl border-2 border-sky-300/40 shadow-xl text-center pointer-events-auto transition-all transform duration-300">
+
+               <p id="question-text" class="text-sm sm:text-base md:text-lg font-bold leading-snug text-sky-100 drop-shadow">
+
+                   Memuatkan soalan...
+
+               </p>
+
+           </div>
+
+       </div>
+
+
+
+       <!-- ON-SCREEN MOBILE CONTROLS -->
+
+       <div id="touch-controls" class="absolute bottom-3 left-0 right-0 px-4 flex justify-between items-center pointer-events-none z-10">
+
+           <!-- Directional Buttons (Left / Right) -->
+
+           <div class="flex gap-2 pointer-events-auto">
+
+               <button id="btn-left" class="btn-action bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white font-black text-xl w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-sky-200 flex items-center justify-center select-none">
+
+                   ◀
+
+               </button>
+
+               <button id="btn-right" class="btn-action bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white font-black text-xl w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-sky-200 flex items-center justify-center select-none">
+
+                   ▶
+
+               </button>
+
+           </div>
+
+
+
+           <!-- Reel & Drop Action Buttons -->
+
+           <div class="flex gap-2 pointer-events-auto">
+
+               <button id="btn-reel" class="btn-action bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-xs sm:text-sm px-3 py-2 w-16 h-14 sm:w-20 sm:h-16 rounded-2xl border-2 border-amber-200 flex flex-col items-center justify-center select-none leading-tight">
+
+                   <span class="text-base sm:text-lg">▲</span>
+
+                   <span>TARIK</span>
+
+               </button>
+
+               <button id="btn-drop" class="btn-action bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs sm:text-sm px-3 py-2 w-20 h-14 sm:w-24 sm:h-16 rounded-2xl border-2 border-emerald-200 flex flex-col items-center justify-center select-none leading-tight glow-gold">
+
+                   <span class="text-base sm:text-lg">⚓</span>
+
+                   <span>PANCING</span>
+
+               </button>
+
+           </div>
+
+       </div>
+
+
+
+       <!-- START GAME OVERLAY MODAL -->
+
+       <div id="modal-start" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 z-30 text-center">
+
+           <div class="max-w-md w-full glass-panel p-6 sm:p-8 flex flex-col items-center gap-5 border-2 border-amber-400/50 shadow-2xl">
+
+               <div class="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-3xl flex items-center justify-center text-4xl shadow-lg border-2 border-amber-200 animate-bounce">
+
+                   🎣
+
+               </div>
+
+               <div>
+
+                   <h2 class="text-2xl sm:text-3xl font-black text-amber-300 drop-shadow mb-1">MEMANCING JAWAPAN SAINS</h2>
+
+                   <p class="text-sky-200 text-xs sm:text-sm font-semibold">Kembara Kad Sains — Sains Tahun 4, Unit 2: Manusia (Pernafasan)</p>
+
+               </div>
+
+
+
+               <div class="bg-slate-900/80 p-4 rounded-xl text-left text-xs sm:text-sm text-slate-200 w-full border border-slate-700/80 space-y-2">
+
+                   <p class="font-bold text-amber-300 text-center text-sm border-b border-slate-700 pb-1">Cara Bermain:</p>
+
+                   <p>1. Baca soalan Sains di bahagian atas skrin.</p>
+
+                   <p>2. Gerakkan joran <span class="text-amber-300 font-bold">KIRI / KANAN</span> ke arah ikan yang membawa jawapan betul.</p>
+
+                   <p>3. Tekan <span class="text-emerald-400 font-bold">PANCING</span> untuk menurunkan mata kail.</p>
+
+                   <p>4. Tangkap 10 ikan jawapan untuk mendapat markah penuh 100!</p>
+
+               </div>
+
+
+
+               <button id="btn-start-game" class="btn-action w-full py-3.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-lg rounded-2xl border-2 border-amber-200 shadow-xl uppercase tracking-wider">
+
+                   MULA MEMANCING 🚀
+
+               </button>
+
+           </div>
+
+       </div>
+
+
+
+       <!-- FEEDBACK OVERLAY MODAL (AFTER CATCH) -->
+
+       <div id="modal-feedback" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-20 hidden">
+
+           <div class="max-w-md w-full glass-panel p-6 flex flex-col items-center gap-4 text-center border-2 border-sky-400/40 shadow-2xl animate-fade-in">
+
+               <div id="fb-icon" class="text-5xl animate-pulse">🌟</div>
+
+               <h3 id="fb-title" class="text-2xl font-black text-amber-300">TANGKAPAN BETUL!</h3>
+
+               <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700 w-full text-left space-y-2">
+
+                   <div class="text-xs text-sky-300 uppercase tracking-wider font-bold">Pilihan Anda:</div>
+
+                   <div id="fb-user-answer" class="text-base font-bold text-white bg-slate-800 p-2.5 rounded-lg border border-slate-600"></div>
+
+                   <div class="text-xs text-amber-300 uppercase tracking-wider font-bold pt-1">Nota Pembelajaran:</div>
+
+                   <p id="fb-explanation" class="text-sm text-slate-200 leading-relaxed font-medium bg-slate-800/50 p-2.5 rounded-lg border border-slate-700"></p>
+
+               </div>
+
+
+
+               <div id="fb-score-added" class="text-emerald-400 font-black text-lg">+10 MATA! 🎉</div>
+
+
+
+               <button id="btn-next-question" class="btn-action w-full py-3 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-black text-base rounded-xl border border-sky-200 shadow-lg">
+
+                   SOALAN SETERUSNYA ▶
+
+               </button>
+
+           </div>
+
+       </div>
+
+
+
+       <!-- GAME OVER / RESULTS MODAL -->
+
+       <div id="modal-end" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 z-30 hidden">
+
+           <div class="max-w-md w-full glass-panel p-6 sm:p-8 flex flex-col items-center gap-4 text-center border-2 border-amber-400 shadow-2xl">
+
+               <div class="text-4xl sm:text-5xl">🏆</div>
+
+               <h2 class="text-2xl sm:text-3xl font-black text-amber-300 uppercase tracking-wide">TAHNIAH, NELAYAN SAINS!</h2>
+
+               <!-- Badge Icon -->
+
+               <div class="relative py-2">
+
+                   <div id="end-badge" class="w-24 h-24 bg-gradient-to-br from-amber-300 via-orange-400 to-amber-500 rounded-full flex items-center justify-center text-4xl shadow-xl border-4 border-amber-100 glow-gold">
+
+                       🥇
+
+                   </div>
+
+               </div>
+
+
+
+               <p id="end-badge-title" class="text-amber-200 font-extrabold text-lg">NELAYAN SAINS PAKAR</p>
+
+
+
+               <!-- Score Stats Grid -->
+
+               <div class="grid grid-cols-2 gap-3 w-full my-1">
+
+                   <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-700">
+
+                       <div class="text-xs text-slate-400 font-bold">JUMLAH MARKAH</div>
+
+                       <div id="end-score" class="text-2xl font-black text-emerald-400">0 / 100</div>
+
+                   </div>
+
+                   <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-700">
+
+                       <div class="text-xs text-slate-400 font-bold">KETEPATAN</div>
+
+                       <div id="end-accuracy" class="text-2xl font-black text-sky-400">0%</div>
+
+                   </div>
+
+               </div>
+
+
+
+               <!-- Message box -->
+
+               <div id="end-message" class="text-sm font-semibold text-slate-200 bg-slate-800/80 p-3 rounded-xl border border-slate-700 w-full">
+
+                   "Hebat! Anda Pakar Pernafasan!"
+
+               </div>
+
+
+
+               <button id="btn-restart" class="btn-action w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-lg rounded-2xl border-2 border-emerald-200 shadow-xl uppercase">
+
+                   🔄 MAIN SEMULA
+
+               </button>
+
+           </div>
+
+       </div>
+
+
+
+</div>
+
+
+
+<!-- JAVASCRIPT GAME ENGINE -->
+
+<script>
+
+
+
+// --- 1. QUESTIONS & DATA DIRECTORY ---
+
+const SCIENCE_QUESTIONS = [
+
+       {
+
+           id: 1,
+
+           question: "Apakah gas yang diperlukan untuk pernafasan manusia?",
+
+           options: [
+
+               { text: "Oksigen", isCorrect: true, code: "A" },
+
+               { text: "Karbon dioksida", isCorrect: false, code: "B" },
+
+               { text: "Nitrogen", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Oksigen diperlukan untuk pernafasan manusia."
+
+       },
+
+       {
+
+           id: 2,
+
+           question: "Organ utama pernafasan manusia ialah?",
+
+           options: [
+
+               { text: "Perut", isCorrect: false, code: "A" },
+
+               { text: "Peparu", isCorrect: true, code: "B" },
+
+               { text: "Usus", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Peparu ialah organ utama pernafasan manusia."
+
+       },
+
+       {
+
+           id: 3,
+
+           question: "Apakah gas yang lebih banyak dalam udara dihembus keluar berbanding udara disedut masuk?",
+
+           options: [
+
+               { text: "Oksigen", isCorrect: false, code: "A" },
+
+               { text: "Karbon dioksida", isCorrect: true, code: "B" },
+
+               { text: "Hidrogen", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Udara yang dihembus keluar mengandungi lebih banyak karbon dioksida berbanding udara yang disedut masuk."
+
+       },
+
+       {
+
+           id: 4,
+
+           question: "Apakah yang berlaku kepada dada semasa menarik nafas?",
+
+           options: [
+
+               { text: "Dada naik dan mengembang", isCorrect: true, code: "A" },
+
+               { text: "Dada turun dan mengempis", isCorrect: false, code: "B" },
+
+               { text: "Dada berhenti bergerak", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Dada naik dan mengembang semasa menarik nafas."
+
+       },
+
+       {
+
+           id: 5,
+
+           question: "Apakah yang berlaku kepada kadar pernafasan semasa berlari?",
+
+           options: [
+
+               { text: "Meningkat", isCorrect: true, code: "A" },
+
+               { text: "Menurun", isCorrect: false, code: "B" },
+
+               { text: "Sentiasa kekal sama", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Kadar pernafasan biasanya meningkat semasa aktiviti cergas."
+
+       },
+
+       {
+
+           id: 6,
+
+           question: "Udara masuk ke dalam badan melalui apa?",
+
+           options: [
+
+               { text: "Telinga", isCorrect: false, code: "A" },
+
+               { text: "Hidung", isCorrect: true, code: "B" },
+
+               { text: "Mata", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Udara boleh masuk ke dalam badan melalui hidung."
+
+       },
+
+       {
+
+           id: 7,
+
+           question: "Apakah yang berlaku semasa menghembus nafas?",
+
+           options: [
+
+               { text: "Udara keluar dari peparu", isCorrect: true, code: "A" },
+
+               { text: "Udara masuk ke peparu", isCorrect: false, code: "B" },
+
+               { text: "Jantung berhenti berdenyut", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Semasa menghembus nafas, udara keluar dari peparu."
+
+       },
+
+       {
+
+           id: 8,
+
+           question: "Apakah nama salur yang membawa udara ke peparu?",
+
+           options: [
+
+               { text: "Salur makanan", isCorrect: false, code: "A" },
+
+               { text: "Salur darah", isCorrect: false, code: "B" },
+
+               { text: "Salur pernafasan", isCorrect: true, code: "C" }
+
+           ],
+
+           explanation: "Salur pernafasan membawa udara menuju ke peparu."
+
+       },
+
+       {
+
+           id: 9,
+
+           question: "Mengapakah manusia perlu bernafas?",
+
+           options: [
+
+               { text: "Untuk mendapatkan oksigen", isCorrect: true, code: "A" },
+
+               { text: "Untuk menukar warna kulit", isCorrect: false, code: "B" },
+
+               { text: "Untuk menghentikan denyutan jantung", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Manusia memerlukan oksigen untuk proses pernafasan."
+
+       },
+
+       {
+
+           id: 10,
+
+           question: "Apakah amalan yang baik untuk menjaga kesihatan peparu?",
+
+           options: [
+
+               { text: "Menghidu asap rokok", isCorrect: false, code: "A" },
+
+               { text: "Bersenam secara berkala", isCorrect: true, code: "B" },
+
+               { text: "Sentiasa berada di tempat berasap", isCorrect: false, code: "C" }
+
+           ],
+
+           explanation: "Bersenam secara berkala membantu menjaga kesihatan sistem pernafasan."
+
+       }
+
+];
+
+
+
+// --- 2. AUDIO SYNTHESIZER ENGINE (Web Audio API) ---
+
+class SoundController {
+
+       constructor() {
+
+           this.ctx = null;
+
+           this.muted = false;
+
+       }
+
+
+
+       init() {
+
+           if (!this.ctx) {
+
+               const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+               this.ctx = new AudioContext();
+
+           }
+
+       }
+
+
+
+       playBeep(freq, type = 'sine', duration = 0.1, vol = 0.2) {
+
+           if (this.muted || !this.ctx) return;
+
+           try {
+
+               const osc = this.ctx.createOscillator();
+
+               const gain = this.ctx.createGain();
+
+               osc.type = type;
+
+               osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+               gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+
+               gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+               osc.connect(gain);
+
+               gain.connect(this.ctx.destination);
+
+               osc.start();
+
+               osc.stop(this.ctx.currentTime + duration);
+
+           } catch (e) {
+
+               console.log("Audio play error", e);
+
+           }
+
+       }
+
+
+
+       playSuccess() {
+
+           if (this.muted || !this.ctx) return;
+
+           const now = this.ctx.currentTime;
+
+           const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+
+           notes.forEach((freq, idx) => {
+
+               setTimeout(() => {
+
+                   this.playBeep(freq, 'triangle', 0.2, 0.3);
+
+               }, idx * 100);
+
+           });
+
+       }
+
+
+
+       playWrong() {
+
+           if (this.muted || !this.ctx) return;
+
+           this.playBeep(220, 'sawtooth', 0.2, 0.3);
+
+           setTimeout(() => this.playBeep(180, 'sawtooth', 0.3, 0.3), 150);
+
+       }
+
+
+
+       playSplash() {
+
+           if (this.muted || !this.ctx) return;
+
+           this.playBeep(400, 'sine', 0.15, 0.15);
+
+       }
+
+
+
+       playHookDrop() {
+
+           if (this.muted || !this.ctx) return;
+
+           this.playBeep(300, 'sine', 0.08, 0.1);
+
+       }
+
+}
+
+
+
+const audio = new SoundController();
+
+
+
+// --- 3. GAME STATE & CANVAS SETUP ---
+
+const canvas = document.getElementById('gameCanvas');
+
+const ctx = canvas.getContext('2d');
+
+
+
+let width = 800;
+
+let height = 600;
+
+
+
+function resizeCanvas() {
+
+       const container = document.getElementById('game-container');
+
+       width = container.clientWidth;
+
+       height = container.clientHeight;
+
+       canvas.width = width;
+
+       canvas.height = height;
+
+}
+
+
+
+window.addEventListener('resize', resizeCanvas);
+
+resizeCanvas();
+
+
+
+// Game Variables
+
+let currentQuestionIndex = 0;
+
+let score = 0;
+
+let correctCount = 0;
+
+let isPaused = false;
+
+let isGameOver = false;
+
+let isQuestionActive = false;
+
+let answerEvaluated = false;
+
+
+
+// Input Key States
+
+const keys = {
+
+       left: false,
+
+       right: false,
+
+       drop: false,
+
+       reel: false
+
+};
+
+
+
+// Fisherman & Hook Physics
+
+const fisherman = {
+
+       x: width / 2,
+
+       y: 75,
+
+       rodLength: 40
+
+};
+
+
+
+const hook = {
+
+       x: width / 2,
+
+       y: 110,
+
+       minY: 110,
+
+       maxY: height - 60,
+
+       speedX: 5,
+
+       speedY: 6,
+
+       state: 'IDLE', // IDLE, DROPPING, HOOKED, REELING
+
+       caughtFish: null
+
+};
+
+
+
+// Background Decorative Objects (Bubbles, Seaweed)
+
+let bubbles = [];
+
+for (let i = 0; i < 20; i++) {
+
+       bubbles.push({
+
+           x: Math.random() * width,
+
+           y: Math.random() * height,
+
+           radius: Math.random() * 4 + 2,
+
+           speed: Math.random() * 1 + 0.5
+
+       });
+
+}
+
+
+
+// Fish Class
+
+class Fish {
+
+       constructor(optionData, index, totalOptions) {
+
+           this.data = optionData; // { text, isCorrect, code }
+
+           this.index = index;
+
+           // Horizontal swimming speed
+
+           this.speed = (Math.random() * 1.2 + 1.2) * (Math.random() < 0.5 ? 1 : -1);
+
+           // Dimensions
+
+           this.width = Math.min(Math.max(width * 0.28, 180), 240);
+
+           this.height = 60;
+
+
+
+           // Position Y distributed across depth zones
+
+           const waterTop = 160;
+
+           const waterBottom = height - 120;
+
+           const depthStep = (waterBottom - waterTop) / totalOptions;
+
+           this.y = waterTop + depthStep * index + depthStep / 2;
+
+
+
+           // Position X
+
+           this.x = Math.random() * (width - this.width - 40) + 20;
+
+
+
+           // Visual Colors for options A, B, C
+
+           const colors = [
+
+               { body: '#ff5722', fin: '#e64a19', textBg: '#ffffff' }, // Fish A: Orange
+
+               { body: '#2196f3', fin: '#1976d2', textBg: '#ffffff' }, // Fish B: Blue
+
+               { body: '#9c27b0', fin: '#7b1fa2', textBg: '#ffffff' }  // Fish C: Purple
+
+           ];
+
+           this.color = colors[index % colors.length];
+
+
+
+           // Swimming animation phase
+
+           this.tailAngle = Math.random() * Math.PI * 2;
+
+           this.isCaught = false;
+
+       }
+
+
+
+       update() {
+
+           if (this.isCaught) {
+
+               // Attach to hook tip
+
+               this.x = hook.x - this.width / 2;
+
+               this.y = hook.y + 10;
+
+               return;
+
+           }
+
+
+
+           // Swim horizontally
+
+           this.x += this.speed;
+
+           this.tailAngle += 0.12;
+
+
+
+           // Bounce off canvas boundaries
+
+           if (this.x <= 10) {
+
+               this.x = 10;
+
+               this.speed *= -1;
+
+           } else if (this.x + this.width >= width - 10) {
+
+               this.x = width - this.width - 10;
+
+               this.speed *= -1;
+
+           }
+
+       }
+
+
+
+       draw(ctx) {
+
+           ctx.save();
+
+           ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+
+
+           // Flip graphics if moving left
+
+           const isFacingRight = this.speed > 0;
+
+           if (!isFacingRight && !this.isCaught) {
+
+               ctx.scale(-1, 1);
+
+           }
+
+
+
+           // Animated Tail
+
+           const tailWag = Math.sin(this.tailAngle) * 8;
+
+           ctx.fillStyle = this.color.fin;
+
+           ctx.beginPath();
+
+           ctx.moveTo(-this.width / 2 + 10, 0);
+
+           ctx.lineTo(-this.width / 2 - 25, -20 + tailWag);
+
+           ctx.lineTo(-this.width / 2 - 25, 20 + tailWag);
+
+           ctx.closePath();
+
+           ctx.fill();
+
+
+
+           // Fish Main Body (Oval/Pill Shape)
+
+           ctx.fillStyle = this.color.body;
+
+           ctx.beginPath();
+
+           ctx.ellipse(0, 0, this.width / 2 - 10, this.height / 2, 0, 0, Math.PI * 2);
+
+           ctx.fill();
+
+           ctx.lineWidth = 3;
+
+           ctx.strokeStyle = '#ffffff';
+
+           ctx.stroke();
+
+
+
+           // Fin top
+
+           ctx.fillStyle = this.color.fin;
+
+           ctx.beginPath();
+
+           ctx.moveTo(-10, -this.height / 2);
+
+           ctx.quadraticCurveTo(10, -this.height / 2 - 15, 25, -this.height / 2);
+
+           ctx.fill();
+
+
+
+           // Eye
+
+           const eyeX = this.width / 2 - 30;
+
+           const eyeY = -8;
+
+           ctx.fillStyle = '#ffffff';
+
+           ctx.beginPath();
+
+           ctx.arc(eyeX, eyeY, 8, 0, Math.PI * 2);
+
+           ctx.fill();
+
+           ctx.fillStyle = '#0c1829';
+
+           ctx.beginPath();
+
+           ctx.arc(eyeX + (isFacingRight ? 2 : -2), eyeY, 4, 0, Math.PI * 2);
+
+           ctx.fill();
+
+
+
+           // Option Code Badge (A, B, or C)
+
+           ctx.fillStyle = '#f59e0b';
+
+           ctx.beginPath();
+
+           ctx.arc(-this.width / 2 + 25, -12, 14, 0, Math.PI * 2);
+
+           ctx.fill();
+
+           ctx.strokeStyle = '#ffffff';
+
+           ctx.lineWidth = 2;
+
+           ctx.stroke();
+
+
+
+           ctx.fillStyle = '#ffffff';
+
+           ctx.font = '900 14px "Fredoka", sans-serif';
+
+           ctx.textAlign = 'center';
+
+           ctx.textBaseline = 'middle';
+
+           ctx.fillText(this.data.code, -this.width / 2 + 25, -11);
+
+
+
+           ctx.restore();
+
+
+
+           // Render Answer Text Card over the fish (Always orientation-correct)
+
+           this.drawTextCard(ctx);
+
+       }
+
+
+
+       drawTextCard(ctx) {
+
+           ctx.save();
+
+           const cardWidth = this.width - 45;
+
+           const cardHeight = 32;
+
+           const cardX = this.x + 35;
+
+           const cardY = this.y + (this.height - cardHeight) / 2;
+
+
+
+           // Card background pill
+
+           ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+
+           ctx.strokeStyle = '#60a5fa';
+
+           ctx.lineWidth = 2;
+
+           ctx.beginPath();
+
+           ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 10);
+
+           ctx.fill();
+
+           ctx.stroke();
+
+
+
+           // Card Text
+
+           ctx.fillStyle = '#ffffff';
+
+           ctx.font = 'bold 12px "Fredoka", sans-serif';
+
+           ctx.textAlign = 'center';
+
+           ctx.textBaseline = 'middle';
+
+
+
+           // Truncate text if needed
+
+           let text = this.data.text;
+
+           if (text.length > 22) {
+
+               text = text.substring(0, 20) + '...';
+
+           }
+
+
+
+           ctx.fillText(text, cardX + cardWidth / 2, cardY + cardHeight / 2 + 1);
+
+           ctx.restore();
+
+       }
+
+
+
+       getBounds() {
+
+           return {
+
+               x: this.x,
+
+               y: this.y,
+
+               width: this.width,
+
+               height: this.height
+
+           };
+
+       }
+
+}
+
+
+
+let activeFishList = [];
+
+
+
+// --- 4. RENDER & ENVIRONMENT DRAWING ---
+
+
+
+function drawEnvironment() {
+
+       // Sky gradient at top
+
+       const skyGradient = ctx.createLinearGradient(0, 0, 0, 100);
+
+       skyGradient.addColorStop(0, '#38bdf8');
+
+       skyGradient.addColorStop(1, '#7dd3fc');
+
+       ctx.fillStyle = skyGradient;
+
+       ctx.fillRect(0, 0, width, 100);
+
+
+
+       // Wooden Pier / Dock
+
+       ctx.fillStyle = '#78350f';
+
+       ctx.fillRect(width / 2 - 70, 80, 140, 20);
+
+       ctx.fillStyle = '#451a03';
+
+       ctx.fillRect(width / 2 - 60, 95, 20, 30);
+
+       ctx.fillRect(width / 2 + 40, 95, 20, 30);
+
+
+
+       // Water Surface Line
+
+       ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+
+       ctx.fillRect(0, 98, width, 4);
+
+
+
+       // Animated Bubbles
+
+       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+
+       bubbles.forEach(b => {
+
+           ctx.beginPath();
+
+           ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+
+           ctx.fill();
+
+
+
+           b.y -= b.speed;
+
+           if (b.y < 100) {
+
+               b.y = height + 10;
+
+               b.x = Math.random() * width;
+
+           }
+
+       });
+
+
+
+       // Seaweed at seabed
+
+       ctx.fillStyle = '#15803d';
+
+       for (let i = 0; i < width; i += 60) {
+
+           ctx.beginPath();
+
+           ctx.moveTo(i, height);
+
+           ctx.quadraticCurveTo(i + 15, height - 40, i + Math.sin(Date.now() * 0.003 + i) * 15, height - 80);
+
+           ctx.quadraticCurveTo(i - 10, height - 40, i, height);
+
+           ctx.fill();
+
+       }
+
+
+
+       // Coral Reef details
+
+       ctx.fillStyle = '#e11d48';
+
+       ctx.beginPath();
+
+       ctx.arc(40, height - 10, 30, 0, Math.PI, true);
+
+       ctx.fill();
+
+       ctx.fillStyle = '#c084fc';
+
+       ctx.beginPath();
+
+       ctx.arc(width - 50, height - 10, 40, 0, Math.PI, true);
+
+       ctx.fill();
+
+}
+
+
+
+function drawFishermanAndRod() {
+
+       // Fisherman "NAFASIO" Character
+
+       const centerX = fisherman.x;
+
+       const centerY = fisherman.y;
+
+
+
+       // Body
+
+       ctx.fillStyle = '#2563eb';
+
+       ctx.fillRect(centerX - 15, centerY - 20, 30, 25);
+
+
+
+       // Head / Face
+
+       ctx.fillStyle = '#fde047';
+
+       ctx.beginPath();
+
+       ctx.arc(centerX, centerY - 30, 14, 0, Math.PI * 2);
+
+       ctx.fill();
+
+
+
+       // Cap
+
+       ctx.fillStyle = '#dc2626';
+
+       ctx.beginPath();
+
+       ctx.arc(centerX, centerY - 34, 15, Math.PI, 0);
+
+       ctx.fill();
+
+       ctx.fillRect(centerX - 18, centerY - 36, 36, 5); // visor
+
+
+
+       // Eyes & Smile
+
+       ctx.fillStyle = '#0f172a';
+
+       ctx.beginPath();
+
+       ctx.arc(centerX - 4, centerY - 32, 2, 0, Math.PI * 2);
+
+       ctx.arc(centerX + 4, centerY - 32, 2, 0, Math.PI * 2);
+
+       ctx.fill();
+
+
+
+       // Fishing Rod Pole
+
+       ctx.strokeStyle = '#d97706';
+
+       ctx.lineWidth = 4;
+
+       ctx.beginPath();
+
+       ctx.moveTo(centerX, centerY - 10);
+
+       ctx.lineTo(hook.x, fisherman.y + 10);
+
+       ctx.stroke();
+
+
+
+       // Fishing Line
+
+       ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+
+       ctx.lineWidth = 1.5;
+
+       ctx.beginPath();
+
+       ctx.moveTo(hook.x, fisherman.y + 10);
+
+       ctx.lineTo(hook.x, hook.y);
+
+       ctx.stroke();
+
+
+
+       // Metallic Hook
+
+       ctx.strokeStyle = '#e2e8f0';
+
+       ctx.lineWidth = 3;
+
+       ctx.beginPath();
+
+       ctx.arc(hook.x - 4, hook.y + 6, 6, 0, Math.PI * 0.8, false);
+
+       ctx.stroke();
+
+}
+
+
+
+// --- 5. GAME LOGIC & COLLISION DETECTION ---
+
+
+
+function updateHook() {
+
+       // Horizontal Movement
+
+       if (keys.left) {
+
+           hook.x -= hook.speedX;
+
+           if (hook.x < 40) hook.x = 40;
+
+       }
+
+       if (keys.right) {
+
+           hook.x += hook.speedX;
+
+           if (hook.x > width - 40) hook.x = width - 40;
+
+       }
+
+
+
+       // Keep Fisherman centered with hook top
+
+       fisherman.x = hook.x;
+
+
+
+       // Hook Vertical State Machine
+
+       if (hook.state === 'DROPPING') {
+
+           hook.y += hook.speedY;
+
+
+
+           // Check boundary bottom
+
+           if (hook.y >= hook.maxY) {
+
+               hook.state = 'REELING';
+
+           }
+
+
+
+           // Collision Check with Active Swimming Fish
+
+           if (!hook.caughtFish) {
+
+               for (let fish of activeFishList) {
+
+                   if (checkCollision(hook, fish)) {
+
+                       hook.caughtFish = fish;
+
+                       fish.isCaught = true;
+
+                       hook.state = 'HOOKED';
+
+                       audio.playSplash();
+
+                       break;
+
+                   }
+
+               }
+
+           }
+
+       } else if (hook.state === 'HOOKED' || hook.state === 'REELING') {
+
+           // Reeling up back to surface
+
+           hook.y -= hook.speedY * 1.2;
+
+
+
+           if (hook.y <= hook.minY) {
+
+               hook.y = hook.minY;
+
+               if (hook.caughtFish && !answerEvaluated) {
+
+                   evaluateCatch(hook.caughtFish);
+
+               } else {
+
+                   hook.state = 'IDLE';
+
+               }
+
+           }
+
+       } else if (keys.drop && hook.state === 'IDLE') {
+
+           hook.state = 'DROPPING';
+
+           audio.playHookDrop();
+
+       } else if (keys.reel && (hook.state === 'DROPPING' || hook.state === 'IDLE')) {
+
+           hook.state = 'REELING';
+
+       }
+
+}
+
+
+
+function checkCollision(hookObj, fishObj) {
+
+       const bounds = fishObj.getBounds();
+
+       const hookRadius = 10;
+
+       return (
+
+           hookObj.x >= bounds.x &&
+
+           hookObj.x <= bounds.x + bounds.width &&
+
+           hookObj.y >= bounds.y &&
+
+           hookObj.y <= bounds.y + bounds.height
+
+       );
+
+}
+
+
+
+// --- 6. QUESTION MANAGEMENT & EVALUATION ---
+
+
+
+function loadQuestion(index) {
+
+       if (index >= SCIENCE_QUESTIONS.length) {
+
+           endGame();
+
+           return;
+
+       }
+
+
+
+       currentQuestionIndex = index;
+
+       answerEvaluated = false;
+
+       hook.caughtFish = null;
+
+       hook.state = 'IDLE';
+
+       hook.y = hook.minY;
+
+
+
+       const qData = SCIENCE_QUESTIONS[index];
+
+
+
+       // Update HUD
+
+       document.getElementById('hud-q-num').innerText = index + 1;
+
+       document.getElementById('hud-progress-bar').style.width = `${((index + 1) / 10) * 100}%`;
+
+       document.getElementById('question-text').innerText = `${index + 1}. ${qData.question}`;
+
+
+
+       // Spawn Fish Options
+
+       activeFishList = qData.options.map((opt, i) => new Fish(opt, i, qData.options.length));
+
+       isQuestionActive = true;
+
+}
+
+
+
+function evaluateCatch(fish) {
+
+       answerEvaluated = true;
+
+       isQuestionActive = false;
+
+
+
+       const isCorrect = fish.data.isCorrect;
+
+       const qData = SCIENCE_QUESTIONS[currentQuestionIndex];
+
+
+
+       // DOM Modal References
+
+       const modalFb = document.getElementById('modal-feedback');
+
+       const fbIcon = document.getElementById('fb-icon');
+
+       const fbTitle = document.getElementById('fb-title');
+
+       const fbUserAnswer = document.getElementById('fb-user-answer');
+
+       const fbExplanation = document.getElementById('fb-explanation');
+
+       const fbScoreAdded = document.getElementById('fb-score-added');
+
+
+
+       if (isCorrect) {
+
+           score += 10;
+
+           correctCount++;
+
+           audio.playSuccess();
+
+           fbIcon.innerText = "🌟";
+
+           fbTitle.innerText = "TANGKAPAN BETUL!";
+
+           fbTitle.className = "text-2xl font-black text-emerald-400";
+
+           fbScoreAdded.innerText = "+10 MATA! 🎉";
+
+           fbScoreAdded.className = "text-emerald-400 font-black text-lg";
+
+       } else {
+
+           audio.playWrong();
+
+           fbIcon.innerText = "💡";
+
+           fbTitle.innerText = "ALAMAK, KURANG TEPAT!";
+
+           fbTitle.className = "text-2xl font-black text-amber-400";
+
+           fbScoreAdded.innerText = "+0 MATA";
+
+           fbScoreAdded.className = "text-slate-400 font-bold text-base";
+
+       }
+
+
+
+       document.getElementById('hud-score').innerText = score;
+
+       fbUserAnswer.innerText = `Ikan ${fish.data.code}: ${fish.data.text}`;
+
+       fbExplanation.innerText = qData.explanation;
+
+
+
+       // Show feedback popup
+
+       modalFb.classList.remove('hidden');
+
+}
+
+
+
+function nextQuestion() {
+
+       document.getElementById('modal-feedback').classList.add('hidden');
+
+       if (currentQuestionIndex + 1 < SCIENCE_QUESTIONS.length) {
+
+           loadQuestion(currentQuestionIndex + 1);
+
+       } else {
+
+           endGame();
+
+       }
+
+}
+
+
+
+// --- 7. GAME OVER & SUMMARY ENGINE ---
+
+
+
+function endGame() {
+
+       isGameOver = true;
+
+       const modalEnd = document.getElementById('modal-end');
+
+       const accuracy = Math.round((correctCount / SCIENCE_QUESTIONS.length) * 100);
+
+
+
+       document.getElementById('end-score').innerText = `${score} / 100`;
+
+       document.getElementById('end-accuracy').innerText = `${accuracy}%`;
+
+
+
+       const badgeIcon = document.getElementById('end-badge');
+
+       const badgeTitle = document.getElementById('end-badge-title');
+
+       const msgBox = document.getElementById('end-message');
+
+
+
+       if (accuracy === 100) {
+
+           badgeIcon.innerText = "👑";
+
+           badgeTitle.innerText = "PAKAR PERNAFASAN SAINS";
+
+           msgBox.innerText = "Hebat! Anda Pakar Pernafasan!";
+
+       } else if (accuracy >= 80) {
+
+           badgeIcon.innerText = "🥇";
+
+           badgeTitle.innerText = "NELAYAN SAINS HANDAL";
+
+           msgBox.innerText = "Bagus! Anda hampir menjadi Pakar Pernafasan!";
+
+       } else if (accuracy >= 60) {
+
+           badgeIcon.innerText = "🥈";
+
+           badgeTitle.innerText = "NELAYAN SAINS BIASA";
+
+           msgBox.innerText = "Usaha yang baik! Teruskan belajar!";
+
+       } else {
+
+           badgeIcon.innerText = "🎣";
+
+           badgeTitle.innerText = "NELAYAN PERMULA";
+
+           msgBox.innerText = "Jangan putus asa! Cuba lagi dan tangkap jawapan yang betul!";
+
+       }
+
+
+
+       modalEnd.classList.remove('hidden');
+
+       // Simpan keputusan untuk integrasi dengan laman utama Kembara Kad Sains.
+       // Local Storage sesuai untuk prototaip, bukan pengesahan antimanipulasi.
+       const gameResult = {
+           platform: 'kembara-kad-sains',
+           gameId: 'nafasio-fishing',
+           gameTitle: 'Memancing Jawapan Sains - NAFASIO',
+           completed: true,
+           score: score,
+           maxScore: 100,
+           correctCount: correctCount,
+           totalQuestions: SCIENCE_QUESTIONS.length,
+           accuracy: accuracy,
+           passed: accuracy >= 80,
+           completedAt: new Date().toISOString()
+       };
+
+       try {
+           localStorage.setItem('kks_nafasio_game_result', JSON.stringify(gameResult));
+       } catch (error) {
+           console.warn('Keputusan game tidak dapat disimpan dalam Local Storage.', error);
+       }
+
+       // Jika game dibenamkan dalam iframe pada origin yang sama,
+       // hantar keputusan kepada laman induk untuk membuka kuiz.
+       if (window.parent && window.parent !== window) {
+           window.parent.postMessage({ type: 'KKS_GAME_RESULT', result: gameResult }, window.location.origin);
+       }
+
+}
+
+
+
+function restartGame() {
+
+       score = 0;
+
+       correctCount = 0;
+
+       currentQuestionIndex = 0;
+
+       isGameOver = false;
+
+       isPaused = false;
+
+
+
+       document.getElementById('hud-score').innerText = '0';
+
+       document.getElementById('modal-end').classList.add('hidden');
+
+       document.getElementById('modal-start').classList.add('hidden');
+
+
+
+       loadQuestion(0);
+
+}
+
+
+
+// --- 8. INPUT LISTENERS & TOUCH CONTROLS ---
+
+
+
+// Keyboard Listeners
+
+window.addEventListener('keydown', (e) => {
+
+       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+
+       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+
+       if (e.key === ' ' || e.key === 'ArrowDown') {
+
+           e.preventDefault();
+
+           keys.drop = true;
+
+       }
+
+       if (e.key === 'ArrowUp') {
+
+           e.preventDefault();
+
+           keys.reel = true;
+
+       }
+
+});
+
+
+
+window.addEventListener('keyup', (e) => {
+
+       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+
+       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+
+       if (e.key === ' ' || e.key === 'ArrowDown') keys.drop = false;
+
+       if (e.key === 'ArrowUp') keys.reel = false;
+
+});
+
+
+
+// Touch Button Helper Helper
+
+function bindTouchButton(btnId, keyName) {
+
+       const btn = document.getElementById(btnId);
+
+       if (!btn) return;
+
+
+
+       const startHandler = (e) => {
+
+           e.preventDefault();
+
+           audio.init();
+
+           keys[keyName] = true;
+
+       };
+
+
+
+       const endHandler = (e) => {
+
+           e.preventDefault();
+
+           keys[keyName] = false;
+
+       };
+
+
+
+       btn.addEventListener('touchstart', startHandler);
+
+       btn.addEventListener('touchend', endHandler);
+
+       btn.addEventListener('mousedown', startHandler);
+
+       btn.addEventListener('mouseup', endHandler);
+
+       btn.addEventListener('mouseleave', endHandler);
+
+}
+
+
+
+bindTouchButton('btn-left', 'left');
+
+bindTouchButton('btn-right', 'right');
+
+bindTouchButton('btn-drop', 'drop');
+
+bindTouchButton('btn-reel', 'reel');
+
+
+
+// UI Buttons
+
+document.getElementById('btn-start-game').addEventListener('click', () => {
+
+       audio.init();
+
+       restartGame();
+
+});
+
+
+
+document.getElementById('btn-next-question').addEventListener('click', () => {
+
+       nextQuestion();
+
+});
+
+
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+
+       restartGame();
+
+});
+
+
+
+document.getElementById('btn-mute').addEventListener('click', () => {
+
+       audio.muted = !audio.muted;
+
+       document.getElementById('btn-mute').innerText = audio.muted ? '🔇' : '🔊';
+
+});
+
+
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+
+       isPaused = !isPaused;
+
+       document.getElementById('btn-pause').innerText = isPaused ? '▶️' : '⏸️';
+
+});
+
+
+
+// --- 9. MAIN GAME LOOP ---
+
+
+
+function gameLoop() {
+
+       ctx.clearRect(0, 0, width, height);
+
+
+
+       drawEnvironment();
+
+
+
+       if (!isPaused && !isGameOver) {
+
+           updateHook();
+
+
+
+           activeFishList.forEach(fish => {
+
+               fish.update();
+
+               fish.draw(ctx);
+
+           });
+
+       } else {
+
+           // Draw fish frozen in place if paused
+
+           activeFishList.forEach(fish => fish.draw(ctx));
+
+       }
+
+
+
+       drawFishermanAndRod();
+
+
+
+       requestAnimationFrame(gameLoop);
+
+}
+
+
+
+// Start loop on window load
+
+window.onload = () => {
+
+       requestAnimationFrame(gameLoop);
+
+};
+
+</script>
+
+</body>
+
+</html>
