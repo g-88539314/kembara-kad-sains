@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permainan Memancing Pernafasan Sains</title>
+    <!-- Tailwind CSS for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for friendly typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            user-select: none;
+            overflow: hidden;
+            background-color: #0c4a6e;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        .bounce-anim {
+            animation: bounce 0.6s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0px); }
+            to { transform: translateY(-8px); }
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen flex flex-col items-center justify-between overflow-hidden">
+
+    <!-- CANVAS GAME LAYER -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+
+    <!-- UI OVERLAY LAYER -->
+    <div id="uiOverlay" class="relative z-10 w-full max-w-5xl h-full flex flex-col justify-between p-3 md:p-6 pointer-events-none">
+
+        <!-- TOP BAR: SCORE, LIVES, QUESTION PROGRESS -->
+        <div class="w-full flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
+            <!-- HUD Card Left: Score & Progress -->
+            <div class="glass-panel px-4 py-2 rounded-2xl shadow-lg flex items-center gap-4 text-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">⭐</span>
+                    <div>
+                        <div class="text-xs uppercase tracking-wider text-slate-500 font-bold">Skor</div>
+                        <div id="scoreText" class="text-xl md:text-2xl font-black text-amber-500">0</div>
+                    </div>
+                </div>
+                <div class="h-8 w-0.5 bg-slate-300"></div>
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🐟</span>
+                    <div>
+                        <div class="text-xs uppercase tracking-wider text-slate-500 font-bold">Soalan</div>
+                        <div id="progressText" class="text-xl md:text-2xl font-black text-sky-600">1 / 10</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HUD Card Right: Hearts / Lives -->
+            <div class="glass-panel px-4 py-2 rounded-2xl shadow-lg flex items-center gap-2">
+                <span class="text-xs uppercase tracking-wider text-slate-500 font-bold mr-1">Nyawa:</span>
+                <div id="livesContainer" class="flex gap-1 text-2xl">
+                    <span class="text-red-500">❤️</span>
+                    <span class="text-red-500">❤️</span>
+                    <span class="text-red-500">❤️</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN QUESTION DISPLAY BANNER -->
+        <div class="w-full flex justify-center pointer-events-auto my-auto">
+            <div id="questionBox" class="glass-panel w-full max-w-3xl p-4 md:p-6 rounded-3xl shadow-2xl text-center transform transition-all duration-300 border-4 border-sky-400">
+                <div class="inline-block px-3 py-1 bg-sky-100 text-sky-700 text-xs md:text-sm font-bold rounded-full mb-2 uppercase tracking-wide">
+                    🎯 Sains Pernafasan
+                </div>
+                <h1 id="questionTitle" class="text-lg md:text-2xl font-bold text-slate-800 leading-snug">
+                    Memuatkan soalan...
+                </h1>
+                <p class="text-xs md:text-sm text-slate-500 mt-2 font-medium">
+                    💡 Klik / Sentuh pada ikan yang membawa jawapan yang betul untuk memancingnya!
+                </p>
+            </div>
+        </div>
+
+        <!-- BOTTOM INSTRUCTION HELPER -->
+        <div class="w-full text-center pointer-events-auto pb-2">
+            <span class="bg-slate-900/60 backdrop-blur-sm text-white text-xs md:text-sm px-4 py-2 rounded-full shadow-md inline-flex items-center gap-2">
+                <span>🎣 Bot nelayan berada di atas air — Klik mana-mana ikan di bawah!</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- START SCREEN MODAL -->
+    <div id="startModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
+        <div class="glass-panel max-w-lg w-full p-6 md:p-8 rounded-3xl shadow-2xl text-center border-4 border-amber-400">
+            <div class="text-6xl mb-3 bounce-anim">🎣</div>
+            <h1 class="text-2xl md:text-3xl font-black text-slate-800 mb-2">Permainan Memancing Pernafasan Sains</h1>
+            <p class="text-slate-600 text-sm md:text-base mb-6">
+                Bantu Nelayan Udin memancing ikan jawapan yang betul untuk menjawab 10 soalan mengenai sistem pernafasan manusia & haiwan!
+            </p>
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-left text-xs md:text-sm text-slate-700 space-y-2">
+                <div class="flex items-start gap-2">
+                    <span>✅</span> <span><strong>Tepat:</strong> Dapat <strong>+100 Markah</strong>.</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span>❌</span> <span><strong>Salah:</strong> Hilang 1 Nyawa ❤️.</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span>🎯</span> <span><strong>Cara Main:</strong> Klik terus pada ikan jawapan untuk melontar mata kail!</span>
+                </div>
+            </div>
+            <button id="startBtn" class="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xl rounded-2xl shadow-xl transform hover:scale-105 active:scale-95 transition-all">
+                Mula Memancing! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- FEEDBACK TOAST / MODAL -->
+    <div id="feedbackModal" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden">
+        <div id="feedbackCard" class="glass-panel max-w-md w-full p-6 rounded-3xl shadow-2xl text-center transform transition-all scale-95">
+            <div id="feedbackIcon" class="text-6xl mb-2">🎉</div>
+            <h2 id="feedbackTitle" class="text-2xl font-bold mb-2 text-slate-800">Jawapan Betul!</h2>
+            <p id="feedbackDesc" class="text-sm text-slate-600 mb-5">Paru-paru merupakan organ utama pernafasan manusia.</p>
+            <button id="feedbackNextBtn" class="w-full py-3 bg-sky-500 hover:bg-sky-600 text-white font-bold text-lg rounded-xl shadow-md transition-all">
+                Teruskan ➔
+            </button>
+        </div>
+    </div>
+
+    <!-- END GAME RESULTS MODAL -->
+    <div id="endModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md hidden">
+        <div class="glass-panel max-w-md w-full p-6 md:p-8 rounded-3xl shadow-2xl text-center border-4 border-sky-400">
+            <div id="endEmoji" class="text-7xl mb-3">🏆</div>
+            <h1 id="endTitle" class="text-3xl font-black text-slate-800 mb-1">Tahniah!</h1>
+            <p id="endSubtitle" class="text-slate-600 text-sm mb-6">Anda telah menamatkan semua soalan pernafasan!</p>
+            
+            <div class="bg-sky-50 rounded-2xl p-4 mb-6 space-y-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-500 font-bold">Skor Akhir</span>
+                    <span id="finalScore" class="text-2xl font-black text-amber-500">1000</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-500 font-bold">Ketepatan</span>
+                    <span id="finalAccuracy" class="text-lg font-bold text-emerald-600">100%</span>
+                </div>
+            </div>
+
+            <button id="restartBtn" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xl rounded-2xl shadow-xl transform hover:scale-105 active:scale-95 transition-all">
+                Main Semula 🔄
+            </button>
+        </div>
+    </div>
+
+    <!-- SOUND SYNTHESIZER & GAME SCRIPT -->
+    <script>
+        /* ==========================================================================
+           1. GAME QUESTIONS DATASET (10 Short Breathing Questions in Malay)
+           ========================================================================== */
+        const QUESTIONS_DATA = [
+            {
+                id: 1,
+                question: "Apakah organ utama pernafasan bagi manusia?",
+                correct: "Paru-paru",
+                options: ["Paru-paru", "Jantung", "Hati", "Perut"],
+                explanation: "Paru-paru ialah organ utama dalam sistem pernafasan manusia untuk pertukaran gas."
+            },
+            {
+                id: 2,
+                question: "Gas apakah yang disedut masuk semasa manusia menarik nafas?",
+                correct: "Oksigen",
+                options: ["Oksigen", "Karbon Dioksida", "Nitrogen", "Helium"],
+                explanation: "Badan manusia memerlukan oksigen untuk pembakaran makanan dan menghasilkan tenaga."
+            },
+            {
+                id: 3,
+                question: "Gas utama apakah yang dibebaskan semasa menghembus nafas?",
+                correct: "Karbon Dioksida",
+                options: ["Karbon Dioksida", "Oksigen", "Hidrogen", "Metana"],
+                explanation: "Karbon dioksida ialah bahan buangan pernafasan yang dihembus keluar dari paru-paru."
+            },
+            {
+                id: 4,
+                question: "Apakah nama saluran udara dari hidung menuju ke paru-paru?",
+                correct: "Trakea",
+                options: ["Trakea", "Esofagus", "Salur Arteri", "Usus"],
+                explanation: "Trakea (salur angin) menyalurkan udara dari kawasan hidung ke dalam paru-paru."
+            },
+            {
+                id: 5,
+                question: "Struktur berbentuk pundi udara tempat pertukaran gas berlaku dikenali sebagai?",
+                correct: "Alveolus",
+                options: ["Alveolus", "Bronkus", "Diafragma", "Tulang Rusuk"],
+                explanation: "Alveolus ialah pundi udara halus di mana pertukaran oksigen dan karbon dioksida berlaku."
+            },
+            {
+                id: 6,
+                question: "Bagaimanakah pergerakan dada semasa kita menarik nafas?",
+                correct: "Naik dan mengembang",
+                options: ["Naik dan mengembang", "Turun dan mengecil", "Kuncup ke dalam", "Tidak bergerak"],
+                explanation: "Semasa menarik nafas, dada bergerak ke atas dan mengembang untuk memberi ruang udara."
+            },
+            {
+                id: 7,
+                question: "Apakah pergerakan diafragma semasa menarik nafas?",
+                correct: "Meleper / Bergerak ke bawah",
+                options: ["Meleper / Bergerak ke bawah", "Melengkung ke atas", "Mengecil", "Tetap sama"],
+                explanation: "Diafragma mengecut dan meleper ke bawah untuk membesarkan rongga dada semasa menarik nafas."
+            },
+            {
+                id: 8,
+                question: "Haiwan apakah yang bernafas menggunakan insang di dalam air?",
+                correct: "Ikan",
+                options: ["Ikan", "Burung", "Kucing", "Belalang"],
+                explanation: "Ikan menggunakan insang untuk menyerap oksigen terlarut dalam air."
+            },
+            {
+                id: 9,
+                question: "Haiwan apakah yang boleh bernafas melalui kulit lembap dan paru-paru?",
+                correct: "Katak",
+                options: ["Katak", "Ular", "Ayam", "Buaya"],
+                explanation: "Amfibia seperti katak bernafas melalui kulit lembap semasa di darat/air dan paru-paru di darat."
+            },
+            {
+                id: 10,
+                question: "Kadar pernafasan manusia akan meningkat tinggi apabila kita...?",
+                correct: "Bersenam / Berlari",
+                options: ["Bersenam / Berlari", "Tidur nyenyak", "Duduk berehat", "Membaca buku"],
+                explanation: "Aktiviti cergas memerlukan lebih banyak oksigen, jadi kadar pernafasan bertambah cepat!"
+            }
+        ];
+
+        /* ==========================================================================
+           2. SOUND SYNTHESIZER (Web Audio API - No external files needed)
+           ========================================================================== */
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+            }
+            playCorrect() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.25); // G5
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+            playWrong() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now); // A3
+                osc.frequency.linearRampToValueAtTime(130, now + 0.3); // C3
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+            playSplash() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+            playReel() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(600, now + 0.05);
+                osc.frequency.setValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+        const sfx = new SoundFX();
+
+        /* ==========================================================================
+           3. CANVAS GAME ENGINE & LOGIC
+           ========================================================================== */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State variables
+        let width = 0;
+        let height = 0;
+        let waterY = 0;
+        let currentQuestionIdx = 0;
+        let score = 0;
+        let lives = 3;
+        let totalAttempts = 0;
+        let correctAttempts = 0;
+        let gameState = 'START'; // 'START', 'PLAYING', 'HOOKING', 'FEEDBACK', 'GAMEOVER'
+
+        // Entities
+        let boat = { x: 0, y: 0, width: 140, height: 40, angle: 0 };
+        let hook = { x: 0, y: 0, targetX: 0, targetY: 0, speed: 12, state: 'IDLE', caughtFish: null };
+        let fishes = [];
+        let bubbles = [];
+        let particles = [];
+        let cloudList = [];
+
+        const FISH_COLORS = [
+            { body: '#f97316', pattern: '#fdba74', labelBg: '#fff' }, // Orange
+            { body: '#06b6d4', pattern: '#67e8f9', labelBg: '#fff' }, // Cyan
+            { body: '#8b5cf6', pattern: '#c4b5fd', labelBg: '#fff' }, // Purple
+            { body: '#10b981', pattern: '#6ee7b7', labelBg: '#fff' }, // Emerald
+            { body: '#ec4899', pattern: '#fbcfe8', labelBg: '#fff' }  // Pink
+        ];
+
+        // Resize Canvas dynamically
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            waterY = height * 0.28; // Water level at 28% of canvas height
+
+            boat.x = width / 2;
+            boat.y = waterY - 10;
+
+            if (hook.state === 'IDLE') {
+                hook.x = boat.x + 40;
+                hook.y = boat.y;
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Fish Class
+        class Fish {
+            constructor(text, isCorrect, depthY, speed, direction) {
+                this.text = text;
+                this.isCorrect = isCorrect;
+                this.width = Math.max(110, text.length * 11 + 30);
+                this.height = 55;
+                this.x = direction === 1 ? -this.width - Math.random() * 200 : width + Math.random() * 200;
+                this.y = depthY;
+                this.speed = speed;
+                this.direction = direction; // 1: right, -1: left
+                this.swimOffset = Math.random() * 100;
+                this.color = FISH_COLORS[Math.floor(Math.random() * FISH_COLORS.length)];
+                this.isHooked = false;
+            }
+
+            update(time) {
+                if (this.isHooked) return;
+                this.x += this.speed * this.direction;
+                // Vertical gentle wobble
+                this.y += Math.sin(time * 0.003 + this.swimOffset) * 0.4;
+
+                // Loop around screen
+                if (this.direction === 1 && this.x > width + 100) {
+                    this.x = -this.width - 50;
+                } else if (this.direction === -1 && this.x < -this.width - 100) {
+                    this.x = width + 50;
+                }
+            }
+
+            draw(ctx, time) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                if (this.direction === -1) {
+                    ctx.scale(-1, 1);
+                }
+
+                const tailAngle = Math.sin(time * 0.015 + this.swimOffset) * 0.25;
+
+                // 1. Draw Tail
+                ctx.save();
+                ctx.translate(-this.width / 2 + 10, 0);
+                ctx.rotate(tailAngle);
+                ctx.fillStyle = this.color.pattern;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-25, -18);
+                ctx.lineTo(-20, 0);
+                ctx.lineTo(-25, 18);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                // 2. Draw Fish Body
+                ctx.fillStyle = this.color.body;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Fins
+                ctx.fillStyle = this.color.pattern;
+                ctx.beginPath();
+                ctx.ellipse(-5, -this.height / 2 + 4, 12, 6, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.ellipse(-5, this.height / 2 - 4, 10, 5, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 - 18, -6, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 - 16, -6, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye shine
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 - 17, -8, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore(); // Restore scale transform for text drawing
+
+                // 3. Draw Text Banner Label (Always upright)
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Label box
+                const padding = 10;
+                ctx.font = 'bold 14px "Fredoka", sans-serif';
+                const textWidth = ctx.measureText(this.text).width;
+                const boxW = textWidth + padding * 2;
+                const boxH = 26;
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                ctx.shadowColor = 'rgba(0,0,0,0.15)';
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.roundRect(-boxW / 2, -boxH / 2 + 2, boxW, boxH, 8);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.strokeStyle = this.color.body;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Text
+                ctx.fillStyle = '#0f172a';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.text, 0, 3);
+
+                ctx.restore();
+            }
+        }
+
+        // Particle System for Effects
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8 - 2;
+                this.size = Math.random() * 6 + 4;
+                this.color = color;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.03 + 0.02;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.15; // gravity
+                this.life -= this.decay;
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Spawn Fishes for Current Question
+        function setupQuestionFishes() {
+            fishes = [];
+            const q = QUESTIONS_DATA[currentQuestionIdx];
+            
+            // UI Update
+            document.getElementById('questionTitle').innerText = q.question;
+            document.getElementById('progressText').innerText = `${currentQuestionIdx + 1} / ${QUESTIONS_DATA.length}`;
+            document.getElementById('scoreText').innerText = score;
+            updateLivesUI();
+
+            const options = [...q.options];
+            // Shuffle options
+            options.sort(() => Math.random() - 0.5);
+
+            const startY = waterY + 80;
+            const availableHeight = height - startY - 80;
+            const stepY = availableHeight / options.length;
+
+            options.forEach((optText, index) => {
+                const isCorrect = (optText === q.correct);
+                const depth = startY + (index * stepY) + Math.random() * 20;
+                const speed = 1.5 + Math.random() * 1.2;
+                const dir = index % 2 === 0 ? 1 : -1;
+                fishes.push(new Fish(optText, isCorrect, depth, speed, dir));
+            });
+        }
+
+        // Initialize Background Clouds & Bubbles
+        function initCloudsAndBubbles() {
+            cloudList = [];
+            for (let i = 0; i < 5; i++) {
+                cloudList.push({
+                    x: Math.random() * width,
+                    y: Math.random() * (waterY * 0.6),
+                    scale: 0.6 + Math.random() * 0.6,
+                    speed: 0.2 + Math.random() * 0.3
+                });
+            }
+
+            bubbles = [];
+            for (let i = 0; i < 20; i++) {
+                bubbles.push({
+                    x: Math.random() * width,
+                    y: waterY + Math.random() * (height - waterY),
+                    r: 2 + Math.random() * 5,
+                    speed: 0.5 + Math.random() * 1,
+                    wobble: Math.random() * 10
+                });
+            }
+        }
+
+        /* ==========================================================================
+           4. DRAWING ROUTINES (Fisherman, Boat, Sky, Sea, Hook)
+           ========================================================================== */
+        function drawScene(time) {
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. SKY GRADIENT
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, waterY);
+            skyGrad.addColorStop(0, '#7dd3fc');
+            skyGrad.addColorStop(1, '#bae6fd');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, width, waterY);
+
+            // Sun
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(width * 0.85, waterY * 0.35, 36, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Clouds
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            cloudList.forEach(c => {
+                c.x += c.speed;
+                if (c.x > width + 100) c.x = -100;
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.scale(c.scale, c.scale);
+                ctx.beginPath();
+                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.arc(18, -10, 22, 0, Math.PI * 2);
+                ctx.arc(40, 0, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // 2. UNDERWATER GRADIENT
+            const seaGrad = ctx.createLinearGradient(0, waterY, 0, height);
+            seaGrad.addColorStop(0, '#0284c7');
+            seaGrad.addColorStop(0.4, '#0369a1');
+            seaGrad.addColorStop(1, '#0c4a6e');
+            ctx.fillStyle = seaGrad;
+            ctx.fillRect(0, waterY, width, height - waterY);
+
+            // Underwater Sunbeams
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(width * 0.2 * i, waterY);
+                ctx.lineTo(width * 0.2 * i + 80, height);
+                ctx.lineTo(width * 0.2 * i + 180, height);
+                ctx.lineTo(width * 0.2 * i + 40, waterY);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Rising Bubbles
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+            bubbles.forEach(b => {
+                b.y -= b.speed;
+                b.x += Math.sin(time * 0.002 + b.wobble) * 0.4;
+                if (b.y < waterY) {
+                    b.y = height + 10;
+                    b.x = Math.random() * width;
+                }
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 3. BOAT & FISHERMAN WITH SINE WAVE BOBBING
+            const bobY = Math.sin(time * 0.003) * 6;
+            const boatAngle = Math.sin(time * 0.002) * 0.04;
+
+            boat.y = waterY - 12 + bobY;
+
+            ctx.save();
+            ctx.translate(boat.x, boat.y);
+            ctx.rotate(boatAngle);
+
+            // Boat Hull
+            ctx.fillStyle = '#b45309'; // Wooden hull
+            ctx.beginPath();
+            ctx.moveTo(-70, 0);
+            ctx.quadraticCurveTo(0, 35, 75, 0);
+            ctx.lineTo(60, -18);
+            ctx.lineTo(-55, -18);
+            ctx.closePath();
+            ctx.fill();
+
+            // Boat Trim
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(-55, -18, 115, 5);
+
+            // Fisherman Character
+            // Body / Shirt
+            ctx.fillStyle = '#ea580c';
+            ctx.beginPath();
+            ctx.roundRect(-20, -50, 26, 32, 6);
+            ctx.fill();
+
+            // Head
+            ctx.fillStyle = '#fed7aa';
+            ctx.beginPath();
+            ctx.arc(-7, -60, 13, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Straw Hat
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.ellipse(-7, -68, 22, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(-7, -72, 12, Math.PI, 0);
+            ctx.fill();
+
+            // Fishing Rod
+            ctx.strokeStyle = '#d97706';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, -35);
+            ctx.lineTo(55, -70);
+            ctx.stroke();
+
+            const rodTipX = 55;
+            const rodTipY = -70;
+
+            ctx.restore();
+
+            // Calculate world rod tip position for fishing line
+            const worldRodTipX = boat.x + rodTipX * Math.cos(boatAngle) - rodTipY * Math.sin(boatAngle);
+            const worldRodTipY = boat.y + rodTipX * Math.sin(boatAngle) + rodTipY * Math.cos(boatAngle);
+
+            // 4. FISHING LINE & HOOK
+            if (hook.state === 'IDLE') {
+                hook.x = worldRodTipX;
+                hook.y = boat.y + 10;
+            }
+
+            // Draw line from rod tip to hook
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(worldRodTipX, worldRodTipY);
+
+            // Slight curve in line if idle
+            if (hook.state === 'IDLE') {
+                ctx.quadraticCurveTo(worldRodTipX + 15, (worldRodTipY + hook.y) / 2, hook.x, hook.y);
+            } else {
+                ctx.lineTo(hook.x, hook.y);
+            }
+            ctx.stroke();
+
+            // Draw Hook J-shape
+            ctx.save();
+            ctx.translate(hook.x, hook.y);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, -8);
+            ctx.lineTo(0, 6);
+            ctx.arc(-5, 6, 5, 0, Math.PI);
+            ctx.lineTo(-10, 2);
+            ctx.stroke();
+
+            // Red sinker / float bead
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(0, -10, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 5. DRAW FISHES
+            fishes.forEach(fish => fish.draw(ctx, time));
+
+            // 6. DRAW WATER SURFACE WAVES (OVERLAY ON BOAT BASE)
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(0, waterY);
+            for (let x = 0; x <= width; x += 30) {
+                const waveY = waterY + Math.sin(x * 0.015 + time * 0.003) * 5;
+                ctx.lineTo(x, waveY);
+            }
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+
+            // Top Bright Wave Rim
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let x = 0; x <= width; x += 30) {
+                const waveY = waterY + Math.sin(x * 0.015 + time * 0.003) * 5;
+                if (x === 0) ctx.moveTo(x, waveY);
+                else ctx.lineTo(x, waveY);
+            }
+            ctx.stroke();
+
+            // 7. PARTICLES
+            particles.forEach((p, idx) => {
+                p.update();
+                p.draw(ctx);
+                if (p.life <= 0) particles.splice(idx, 1);
+            });
+        }
+
+        /* ==========================================================================
+           5. GAME LOOP & HOOK MECHANICS LOGIC
+           ========================================================================== */
+        function updateHook() {
+            if (hook.state === 'CASTING') {
+                const dx = hook.targetX - hook.x;
+                const dy = hook.targetY - hook.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < hook.speed) {
+                    hook.x = hook.targetX;
+                    hook.y = hook.targetY;
+
+                    // Check if targeted fish caught
+                    if (hook.targetFish) {
+                        hook.caughtFish = hook.targetFish;
+                        hook.caughtFish.isHooked = true;
+                        hook.state = 'REELING';
+                        sfx.playSplash();
+                    } else {
+                        hook.state = 'RETRACTING';
+                    }
+                } else {
+                    hook.x += (dx / dist) * hook.speed;
+                    hook.y += (dy / dist) * hook.speed;
+                }
+            } else if (hook.state === 'REELING') {
+                // Drag fish up to boat
+                const targetX = boat.x + 20;
+                const targetY = boat.y + 10;
+                const dx = targetX - hook.x;
+                const dy = targetY - hook.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < hook.speed * 1.5) {
+                    // Reached boat! Process answer
+                    processAnswer(hook.caughtFish);
+                    hook.state = 'IDLE';
+                    hook.caughtFish = null;
+                } else {
+                    hook.x += (dx / dist) * (hook.speed * 1.2);
+                    hook.y += (dy / dist) * (hook.speed * 1.2);
+                    if (hook.caughtFish) {
+                        hook.caughtFish.x = hook.x;
+                        hook.caughtFish.y = hook.y + 15;
+                    }
+                }
+            } else if (hook.state === 'RETRACTING') {
+                const targetX = boat.x + 40;
+                const targetY = boat.y;
+                const dx = targetX - hook.x;
+                const dy = targetY - hook.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < hook.speed * 1.5) {
+                    hook.state = 'IDLE';
+                } else {
+                    hook.x += (dx / dist) * (hook.speed * 1.5);
+                    hook.y += (dy / dist) * (hook.speed * 1.5);
+                }
+            }
+        }
+
+        function gameLoop(time) {
+            fishes.forEach(fish => fish.update(time));
+            updateHook();
+            drawScene(time);
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* ==========================================================================
+           6. INTERACTION & ANSWER EVALUATION
+           ========================================================================== */
+        function triggerCast(clientX, clientY) {
+            if (gameState !== 'PLAYING' || hook.state !== 'IDLE') return;
+
+            sfx.init();
+
+            // Find if clicked directly on a fish or nearby
+            let clickedFish = null;
+            for (let fish of fishes) {
+                const dx = clientX - fish.x;
+                const dy = clientY - fish.y;
+                if (Math.abs(dx) < fish.width / 2 + 20 && Math.abs(dy) < fish.height / 2 + 20) {
+                    clickedFish = fish;
+                    break;
+                }
+            }
+
+            hook.state = 'CASTING';
+            if (clickedFish) {
+                hook.targetX = clickedFish.x;
+                hook.targetY = clickedFish.y;
+                hook.targetFish = clickedFish;
+            } else {
+                hook.targetX = clientX;
+                hook.targetY = Math.max(waterY + 40, clientY);
+                hook.targetFish = null;
+            }
+
+            sfx.playReel();
+        }
+
+        window.addEventListener('pointerdown', (e) => {
+            // Ignore if clicking UI overlays
+            const uiOverlay = document.getElementById('uiOverlay');
+            if (e.target.closest('#questionBox') || e.target.closest('#startModal') || e.target.closest('#feedbackModal') || e.target.closest('#endModal')) {
+                return;
+            }
+            triggerCast(e.clientX, e.clientY);
+        });
+
+        function spawnStarBurst(x, y, isCorrect) {
+            const colors = isCorrect ? ['#fde047', '#38bdf8', '#4ade80', '#fbbf24'] : ['#ef4444', '#f87171', '#94a3b8'];
+            for (let i = 0; i < 25; i++) {
+                particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+            }
+        }
+
+        function processAnswer(fish) {
+            if (!fish) return;
+            totalAttempts++;
+
+            const currentQ = QUESTIONS_DATA[currentQuestionIdx];
+            const isCorrect = fish.isCorrect;
+
+            spawnStarBurst(boat.x, boat.y - 20, isCorrect);
+
+            if (isCorrect) {
+                score += 100;
+                correctAttempts++;
+                sfx.playCorrect();
+                showFeedback(true, "Syabas! Jawapan Tepat 🎯", currentQ.explanation);
+            } else {
+                lives--;
+                sfx.playWrong();
+                updateLivesUI();
+
+                if (lives <= 0) {
+                    showFeedback(false, "Kurang Tepat! ❌", `Jawapan yang betul ialah: ${currentQ.correct}.\n${currentQ.explanation}`);
+                } else {
+                    showFeedback(false, "Aduh, Salah! ❌", `Jawapan betul: ${currentQ.correct}.\n${currentQ.explanation}`);
+                }
+            }
+        }
+
+        function updateLivesUI() {
+            const container = document.getElementById('livesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heart = document.createElement('span');
+                heart.className = i < lives ? 'text-red-500 transform scale-110 transition-transform' : 'text-slate-300 opacity-40';
+                heart.innerText = '❤️';
+                container.appendChild(heart);
+            }
+        }
+
+        function showFeedback(isCorrect, title, desc) {
+            gameState = 'FEEDBACK';
+            const modal = document.getElementById('feedbackModal');
+            const card = document.getElementById('feedbackCard');
+            const icon = document.getElementById('feedbackIcon');
+            const titleEl = document.getElementById('feedbackTitle');
+            const descEl = document.getElementById('feedbackDesc');
+
+            icon.innerText = isCorrect ? '🌟' : '💡';
+            titleEl.innerText = title;
+            titleEl.className = `text-2xl font-bold mb-2 ${isCorrect ? 'text-emerald-600' : 'text-rose-600'}`;
+            descEl.innerText = desc;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => card.classList.remove('scale-95'), 10);
+        }
+
+        document.getElementById('feedbackNextBtn').addEventListener('click', () => {
+            const modal = document.getElementById('feedbackModal');
+            modal.classList.add('hidden');
+
+            if (lives <= 0) {
+                endGame(false);
+            } else {
+                currentQuestionIdx++;
+                if (currentQuestionIdx >= QUESTIONS_DATA.length) {
+                    endGame(true);
+                } else {
+                    gameState = 'PLAYING';
+                    setupQuestionFishes();
+                }
+            }
+        });
+
+        function endGame(isWin) {
+            gameState = 'GAMEOVER';
+            const modal = document.getElementById('endModal');
+            const emoji = document.getElementById('endEmoji');
+            const title = document.getElementById('endTitle');
+            const subtitle = document.getElementById('endSubtitle');
+            const finalScore = document.getElementById('finalScore');
+            const finalAccuracy = document.getElementById('finalAccuracy');
+
+            if (isWin) {
+                emoji.innerText = score >= 800 ? '🏆' : '🐟';
+                title.innerText = score >= 800 ? 'Luar Biasa!' : 'Tahniah!';
+                subtitle.innerText = 'Anda telah berjaya menjawab soalan Sains Pernafasan!';
+            } else {
+                emoji.innerText = '⚓';
+                title.innerText = 'Permainan Tamat';
+                subtitle.innerText = 'Nyawa anda telah habis. Jom cuba sekali lagi!';
+            }
+
+            finalScore.innerText = score;
+            const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+            finalAccuracy.innerText = `${accuracy}%`;
+
+            modal.classList.remove('hidden');
+        }
+
+        /* ==========================================================================
+           7. INITIALIZATION & RESTART HANDLERS
+           ========================================================================== */
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            currentQuestionIdx = 0;
+            totalAttempts = 0;
+            correctAttempts = 0;
+            gameState = 'PLAYING';
+
+            document.getElementById('endModal').classList.add('hidden');
+            document.getElementById('startModal').classList.add('hidden');
+
+            resizeCanvas();
+            initCloudsAndBubbles();
+            setupQuestionFishes();
+        }
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            sfx.init();
+            resetGame();
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            resetGame();
+        });
+
+        window.onload = () => {
+            resizeCanvas();
+            initCloudsAndBubbles();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
