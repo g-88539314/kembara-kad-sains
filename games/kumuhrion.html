@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KUIZ ULAR SAINS: MISI PERKUMUHAN — Sains Tahun 4</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap');
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            background-color: #050c14;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Game Container Wrapper */
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 720px;
+            min-height: 100vh;
+            margin: 0 auto;
+            background: radial-gradient(circle at 50% 30%, #0c2338 0%, #061524 60%, #030a12 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 0 45px rgba(16, 185, 129, 0.3);
+            border-left: 3px solid #10b981;
+            border-right: 3px solid #10b981;
+            overflow: hidden;
+        }
+
+        /* Snake Canvas */
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #040e17;
+            border: 3px solid #10b981;
+            border-radius: 1.25rem;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Glassmorphic UI Overlays */
+        .glass-panel {
+            background: rgba(6, 21, 36, 0.94);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(16, 185, 129, 0.5);
+            border-radius: 1.25rem;
+        }
+
+        .btn-action {
+            transition: all 0.12s ease;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.4);
+        }
+
+        .btn-action:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.4);
+        }
+
+        .option-card {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 5px 0 rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+
+        .option-card:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 8px 15px rgba(16, 185, 129, 0.35);
+        }
+
+        .option-card:active {
+            transform: translateY(2px) scale(0.98);
+        }
+
+        /* Glow animation */
+        @keyframes pulse-emerald {
+            0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(52, 211, 153, 0.95); }
+        }
+
+        .glow-emerald {
+            animation: pulse-emerald 2s infinite;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-950">
+
+<div id="game-container" class="relative z-0 p-3 sm:p-5">
+
+    <!-- TOP HEADER / HUD -->
+    <header class="relative z-10 w-full mb-2 space-y-2">
+        
+        <!-- Top Bar Title & Mute Controls -->
+        <div class="flex justify-between items-center bg-slate-900/90 backdrop-blur-md p-2.5 px-4 rounded-2xl border border-emerald-500/40 shadow-xl">
+            
+            <!-- Question Tracker -->
+            <div class="flex items-center gap-2">
+                <span class="bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black px-3 py-1 rounded-xl text-xs sm:text-sm tracking-wide shadow">
+                    SOALAN <span id="hud-q-num">1</span>/10
+                </span>
+                <div class="hidden sm:block w-32 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
+                    <div id="hud-progress-bar" class="bg-gradient-to-r from-emerald-400 to-teal-400 h-full w-1/10 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- Title Header -->
+            <div class="text-center hidden md:block">
+                <h1 class="text-emerald-300 font-black text-sm tracking-wider uppercase drop-shadow">KUIZ ULAR SAINS PERKUMUHAN</h1>
+                <p class="text-[10px] text-teal-200 font-bold">SAINS TAHUN 4 — UNIT 2: MANUSIA</p>
+            </div>
+
+            <!-- Score & Controls -->
+            <div class="flex items-center gap-2">
+                <div class="bg-emerald-950/90 text-emerald-200 font-extrabold px-3 py-1 rounded-xl text-xs sm:text-sm flex items-center gap-1 shadow border border-emerald-400/40">
+                    <span>⭐</span>
+                    <span id="hud-score" class="text-yellow-300 font-black">0</span> <span class="text-xs font-normal opacity-80">Mata</span>
+                </div>
+                <button id="btn-mute" class="bg-slate-800 hover:bg-slate-700 text-emerald-300 p-1.5 rounded-xl border border-slate-600 text-base flex items-center justify-center w-9 h-9" title="Bunyi On/Off">
+                    🔊
+                </button>
+                <button id="btn-pause" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-1.5 rounded-xl border border-slate-600 text-base flex items-center justify-center w-9 h-9" title="Jeda">
+                    ⏸️
+                </button>
+            </div>
+        </div>
+
+        <!-- Banner Prompt / Instruction -->
+        <div class="bg-gradient-to-r from-emerald-950/90 via-slate-900/90 to-emerald-950/90 text-white p-2.5 px-4 rounded-xl border border-emerald-500/30 text-center flex items-center justify-between shadow">
+            <span class="text-xs sm:text-sm font-bold text-emerald-200 flex items-center gap-1.5">
+                <span>🐍</span> Kawal Ular untuk memakan kristal makanan Sains di bawah!
+            </span>
+            <span class="text-[11px] font-black text-yellow-300 bg-emerald-900/60 px-2.5 py-0.5 rounded-md border border-emerald-400/30">
+                PANAH / WASD / SKRIN
+            </span>
+        </div>
+    </header>
+
+    <!-- SNAKE CANVAS DISPLAY AREA -->
+    <main class="relative z-10 flex-grow flex flex-col items-center justify-center my-1">
+        <canvas id="snakeCanvas" width="400" height="400"></canvas>
+    </main>
+
+    <!-- ON-SCREEN MOBILE / TABLET TOUCH D-PAD CONTROLS -->
+    <footer class="relative z-10 w-full pt-2 pb-1">
+        <div class="max-w-[220px] mx-auto grid grid-cols-3 gap-1.5 items-center justify-items-center">
+            <div></div>
+            <button id="btn-up" class="btn-action w-12 h-12 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xl rounded-2xl border-2 border-emerald-200 flex items-center justify-center select-none shadow-lg">
+                ▲
+            </button>
+            <div></div>
+
+            <button id="btn-left" class="btn-action w-12 h-12 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xl rounded-2xl border-2 border-emerald-200 flex items-center justify-center select-none shadow-lg">
+                ◀
+            </button>
+            <button id="btn-down" class="btn-action w-12 h-12 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xl rounded-2xl border-2 border-emerald-200 flex items-center justify-center select-none shadow-lg">
+                ▼
+            </button>
+            <button id="btn-right" class="btn-action w-12 h-12 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xl rounded-2xl border-2 border-emerald-200 flex items-center justify-center select-none shadow-lg">
+                ▶
+            </button>
+        </div>
+    </footer>
+
+    <!-- START GAME OVERLAY MODAL -->
+    <div id="modal-start" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 z-40 text-center">
+        <div class="max-w-md w-full glass-panel p-6 sm:p-8 flex flex-col items-center gap-5 border-2 border-emerald-400/60 shadow-2xl">
+            
+            <div class="w-24 h-24 bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 rounded-3xl flex items-center justify-center text-5xl shadow-xl border-2 border-emerald-200 relative animate-bounce">
+                🐍
+                <span class="absolute -bottom-2 bg-emerald-400 text-slate-950 font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-wider shadow">ULAR SAINS</span>
+            </div>
+
+            <div>
+                <h2 class="text-2xl sm:text-3xl font-black text-emerald-300 drop-shadow mb-1">KUIZ ULAR SAINS!</h2>
+                <p class="text-teal-200 text-xs sm:text-sm font-bold">Misi Perkumuhan Manusia — Sains Tahun 4</p>
+            </div>
+
+            <div class="bg-slate-900/90 p-4 rounded-xl text-left text-xs sm:text-sm text-slate-200 w-full border border-slate-700 space-y-2">
+                <p class="font-bold text-emerald-300 text-center text-sm border-b border-slate-700 pb-1">Panduan Permainan Ular Kuiz:</p>
+                <p>1. Kawal <span class="text-emerald-300 font-bold">Ular Sains</span> bergerak mencari Kristal Makanan.</p>
+                <p>2. Setiap kali ular <span class="text-yellow-300 font-bold">memakan makanan</span>, soalan Sains Perkumuhan akan dipaparkan.</p>
+                <p>3. Jawab soalan dengan tepat untuk mendapat <span class="text-emerald-400 font-bold">+10 Mata</span> dan memanjangkan badan ular.</p>
+                <p>4. Jawab kesemua 10 soalan untuk melengkapkan Misi Perkumuhan Manusia!</p>
+            </div>
+
+            <button onclick="startGame()" class="btn-action w-full py-3.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-black text-lg rounded-2xl border-2 border-emerald-200 shadow-xl uppercase tracking-wider glow-emerald">
+                MULAKAN GAME ULAR 🐍
+            </button>
+        </div>
+    </div>
+
+    <!-- QUIZ QUESTION POPUP MODAL (TRIGGERED WHEN SNAKE EATS FOOD) -->
+    <div id="modal-quiz" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 z-30 hidden">
+        <div class="max-w-md w-full glass-panel p-5 sm:p-6 flex flex-col items-center gap-4 text-center border-2 border-emerald-400/70 shadow-2xl">
+            
+            <!-- Header Tag -->
+            <div class="flex items-center gap-2">
+                <span id="quiz-question-tag" class="bg-emerald-400 text-slate-950 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
+                    SOALAN 1 / 10
+                </span>
+                <span class="text-xs text-yellow-300 font-extrabold bg-slate-900 px-2.5 py-0.5 rounded-lg border border-slate-700">
+                    +10 MATA
+                </span>
+            </div>
+
+            <!-- Question Text -->
+            <h3 id="quiz-question-text" class="text-sm sm:text-base font-extrabold text-white leading-snug drop-shadow">
+                Memuatkan soalan perkumuhan Sains...
+            </h3>
+
+            <!-- 3 Multiple Choice Options -->
+            <div id="quiz-options-container" class="w-full space-y-2.5">
+                <!-- Dynamic cards injected via JS -->
+            </div>
+
+            <!-- Explanation Feedback Box -->
+            <div id="quiz-feedback-box" class="w-full p-3 rounded-xl text-xs font-bold hidden border leading-relaxed text-left">
+                <!-- Feedback injected via JS -->
+            </div>
+
+            <!-- Continue Button -->
+            <button id="btn-quiz-continue" onclick="resumeSnakeGame()" class="btn-action w-full py-3 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-sm rounded-xl border border-emerald-200 hidden">
+                TERUSKAN GAME ULAR ▶
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER / RESULTS MODAL -->
+    <div id="modal-end" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 z-40 hidden">
+        <div class="max-w-md w-full glass-panel p-6 sm:p-8 flex flex-col items-center gap-4 text-center border-2 border-emerald-400 shadow-2xl">
+            <div class="text-4xl sm:text-5xl">🏆</div>
+            <h2 class="text-2xl sm:text-3xl font-black text-emerald-300 uppercase tracking-wide">TAHNIAH, WIRA SAINS!</h2>
+            
+            <!-- Digital Badge -->
+            <div class="relative py-1">
+                <div id="end-badge" class="w-24 h-24 bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-500 rounded-full flex items-center justify-center text-4xl shadow-xl border-4 border-emerald-100 glow-emerald">
+                    👑
+                </div>
+            </div>
+
+            <p id="end-badge-title" class="text-emerald-200 font-extrabold text-lg uppercase tracking-wider">PAKAR PERKUMUHAN SAINS</p>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-3 w-full my-1 text-center">
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-700">
+                    <div class="text-xs text-slate-400 font-bold">JUMLAH MARKAH</div>
+                    <div id="end-score" class="text-2xl font-black text-yellow-300">0 / 100</div>
+                </div>
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-700">
+                    <div class="text-xs text-slate-400 font-bold">KETEPATAN</div>
+                    <div id="end-accuracy" class="text-2xl font-black text-emerald-400">0%</div>
+                </div>
+            </div>
+
+            <!-- Learning Summary Box -->
+            <div class="bg-slate-900/95 p-3.5 rounded-xl border border-slate-700 text-left text-xs space-y-1.5 w-full max-h-40 overflow-y-auto">
+                <div class="font-bold text-emerald-300 border-b border-slate-700 pb-1 text-center">Rumusan Perkumuhan Manusia (Sains Tahun 4):</div>
+                <p class="text-slate-200">1. <span class="text-emerald-300 font-bold">Maksud Perkumuhan:</span> Proses menyingkirkan bahan buangan daripada badan.</p>
+                <p class="text-slate-200">2. <span class="text-emerald-300 font-bold">Buah Pinggang:</span> Menyingkirkan air kencing (air, garam mineral, urea).</p>
+                <p class="text-slate-200">3. <span class="text-emerald-300 font-bold">Kulit:</span> Menyingkirkan peluh melalui liang pori.</p>
+                <p class="text-slate-200">4. <span class="text-emerald-300 font-bold">Peparu:</span> Menyingkirkan karbon dioksida dan wap air semasa menghembus nafas.</p>
+                <p class="text-slate-200">5. <span class="text-emerald-300 font-bold">Laluan Air Kencing:</span> Buah Pinggang ➔ Ureter ➔ Pundi Kencing ➔ Uretra.</p>
+                <p class="text-slate-200">6. <span class="text-emerald-300 font-bold">Amalan Sihat:</span> Minum air secukupnya & tidak menahan kencing.</p>
+            </div>
+
+            <button onclick="restartGame()" class="btn-action w-full py-3.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-black text-lg rounded-2xl border-2 border-emerald-200 shadow-xl uppercase">
+                🔄 MAIN SEMULA
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- JAVASCRIPT GAME ENGINE -->
+<script>
+
+// --- 1. SCIENCE QUESTION BANK (10 QUESTIONS: PERKUMUHAN MANUSIA - SAINS TAHUN 4) ---
+const QUESTIONS_BANK = [
+    {
+        id: 1,
+        question: "Apakah yang dimaksudkan dengan proses perkumuhan manusia?",
+        options: [
+            { code: "A", text: "Proses menyingkirkan bahan buangan daripada badan", isCorrect: true },
+            { code: "B", text: "Proses mencerna makanan di dalam perut", isCorrect: false },
+            { code: "C", text: "Proses menyedut udara segar ke dalam peparu", isCorrect: false }
+        ],
+        explanation: "Syabas! Perkumuhan ialah proses penyingkiran bahan buangan berniat toksik daripada badan manusia."
+    },
+    {
+        id: 2,
+        question: "Organ manakah yang berfungsi menapis darah dan menghasilkan air kencing?",
+        options: [
+            { code: "A", text: "Buah pinggang", isCorrect: true },
+            { code: "B", text: "Perut", isCorrect: false },
+            { code: "C", text: "Jantung", isCorrect: false }
+        ],
+        explanation: "Tepat! Buah pinggang menapis darah untuk menyingkirkan air kencing (air, garam mineral, dan urea)."
+    },
+    {
+        id: 3,
+        question: "Apakah bahan buangan yang disingkirkan oleh organ kulit?",
+        options: [
+            { code: "A", text: "Peluh", isCorrect: true },
+            { code: "B", text: "Karbon dioksida", isCorrect: false },
+            { code: "C", text: "Najis", isCorrect: false }
+        ],
+        explanation: "Betul! Kulit menyingkirkan peluh yang mengandungi air, garam mineral, dan sedikit urea."
+    },
+    {
+        id: 4,
+        question: "Peparu menyingkirkan bahan buangan perkumuhan yang manakah semasa menghembus nafas?",
+        options: [
+            { code: "A", text: "Karbon dioksida dan wap air", isCorrect: true },
+            { code: "B", text: "Oksigen dan nitrogen", isCorrect: false },
+            { code: "C", text: "Air kencing dan peluh", isCorrect: false }
+        ],
+        explanation: "Syabas! Peparu menyingkirkan karbon dioksida dan wap air semasa kita menghembus nafas."
+    },
+    {
+        id: 5,
+        question: "Apakah nama salur yang membawa air kencing dari buah pinggang ke pundi kencing?",
+        options: [
+            { code: "A", text: "Ureter", isCorrect: true },
+            { code: "B", text: "Uretra", isCorrect: false },
+            { code: "C", text: "Usus kecil", isCorrect: false }
+        ],
+        explanation: "Tepat! Ureter ialah salur yang menghubungkan buah pinggang ke pundi kencing."
+    },
+    {
+        id: 6,
+        question: "Di manakah air kencing disimpan sementara sebelum disingkirkan daripada badan?",
+        options: [
+            { code: "A", text: "Pundi kencing", isCorrect: true },
+            { code: "B", text: "Peparu", isCorrect: false },
+            { code: "C", text: "Hidung", isCorrect: false }
+        ],
+        explanation: "Betul! Pundi kencing menyimpan air kencing sementara sehingga sedia untuk dikeluarkan."
+    },
+    {
+        id: 7,
+        question: "Apakah nama salur yang membawa air kencing keluar daripada badan?",
+        options: [
+            { code: "A", text: "Uretra", isCorrect: true },
+            { code: "B", text: "Ureter", isCorrect: false },
+            { code: "C", text: "Salur darah", isCorrect: false }
+        ],
+        explanation: "Syabas! Uretra ialah saluran akhir yang membawa air kencing keluar dari badan."
+    },
+    {
+        id: 8,
+        question: "Mengapakah proses perkumuhan sangat penting kepada manusia?",
+        options: [
+            { code: "A", text: "Mengelakkan bahan buangan toksik terkumpul dalam badan", isCorrect: true },
+            { code: "B", text: "Supaya badan tidak memerlukan air lagi", isCorrect: false },
+            { code: "C", text: "Untuk meningkatkan ketinggian badan dengan cepat", isCorrect: false }
+        ],
+        explanation: "Tepat! Jika bahan buangan perkumuhan tidak disingkirkan, ia boleh menjadi racun/toksik kepada badan."
+    },
+    {
+        id: 9,
+        question: "Apakah amalan baik untuk menjaga kesihatan sistem perkumuhan buah pinggang?",
+        options: [
+            { code: "A", text: "Minum air secukupnya dan tidak menahan buang air kencing", isCorrect: true },
+            { code: "B", text: "Makan makanan yang sangat masin setiap hari", isCorrect: false },
+            { code: "C", text: "Mengurangkan minum air sepanjang hari", isCorrect: false }
+        ],
+        explanation: "Betul! Minum air secukupnya dan tidak menahan buang air kencing menjaga kesihatan buah pinggang."
+    },
+    {
+        id: 10,
+        question: "Apakah perbezaan utama antara perkumuhan dan penyahtinjaan?",
+        options: [
+            { code: "A", text: "Perkumuhan = buangan badan; Penyahtinjaan = sisa makanan (najis)", isCorrect: true },
+            { code: "B", text: "Perkumuhan hanya berlaku pada waktu malam", isCorrect: false },
+            { code: "C", text: "Penyahtinjaan dilakukan oleh organ buah pinggang", isCorrect: false }
+        ],
+        explanation: "Tahniah! Perkumuhan menyingkirkan bahan kumuh cecair/gas, manakala penyahtinjaan menyingkirkan sisa makanan (najis)."
+    }
+];
+
+// --- 2. AUDIO SYNTHESIZER ENGINE (Web Audio API) ---
+class SoundEngine {
+    constructor() {
+        this.ctx = null;
+        this.muted = false;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+        }
+    }
+
+    playTone(freq, type = 'sine', duration = 0.1, vol = 0.2) {
+        if (this.muted || !this.ctx) return;
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+    }
+
+    playEat() {
+        this.playTone(523.25, 'sine', 0.08, 0.2); // C5
+        setTimeout(() => this.playTone(659.25, 'triangle', 0.1, 0.25), 60); // E5
+    }
+
+    playSuccess() {
+        if (this.muted || !this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+            setTimeout(() => this.playTone(freq, 'triangle', 0.18, 0.25), idx * 80);
+        });
+    }
+
+    playWrong() {
+        if (this.muted || !this.ctx) return;
+        this.playTone(220, 'sawtooth', 0.2, 0.25);
+        setTimeout(() => this.playTone(175, 'sawtooth', 0.3, 0.25), 140);
+    }
+}
+
+const audio = new SoundEngine();
+
+// --- 3. SNAKE GAME ENGINE & CANVAS LOGIC ---
+const canvas = document.getElementById('snakeCanvas');
+const ctx = canvas.getContext('2d');
+
+const GRID_SIZE = 20; // 20x20 cells grid
+let cellSize = 20;
+
+let snake = [];
+let dir = { x: 1, y: 0 };
+let nextDir = { x: 1, y: 0 };
+let food = { x: 10, y: 10 };
+
+let score = 0;
+let correctCount = 0;
+let currentQuestionIndex = 0;
+let isPaused = false;
+let isGameOver = false;
+let gameInterval = null;
+let lastAnswerCorrect = false;
+
+function resizeCanvas() {
+    const container = document.getElementById('game-container');
+    const availableWidth = Math.min(container.clientWidth - 40, 420);
+    canvas.width = availableWidth;
+    canvas.height = availableWidth;
+    cellSize = availableWidth / GRID_SIZE;
+}
+
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    drawGame();
+});
+
+function initSnake() {
+    snake = [
+        { x: 5, y: 10 },
+        { x: 4, y: 10 },
+        { x: 3, y: 10 }
+    ];
+    dir = { x: 1, y: 0 };
+    nextDir = { x: 1, y: 0 };
+    spawnFood();
+}
+
+function spawnFood() {
+    let validPosition = false;
+    while (!validPosition) {
+        food.x = Math.floor(Math.random() * GRID_SIZE);
+        food.y = Math.floor(Math.random() * GRID_SIZE);
+        
+        // Ensure food does not spawn inside snake body
+        validPosition = !snake.some(segment => segment.x === food.x && segment.y === food.y);
+    }
+}
+
+function updateGame() {
+    if (isPaused || isGameOver) return;
+
+    // Update direction from input queue
+    dir = { ...nextDir };
+
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+    // Wall Wrapping / Border Pass-through
+    if (head.x < 0) head.x = GRID_SIZE - 1;
+    if (head.x >= GRID_SIZE) head.x = 0;
+    if (head.y < 0) head.y = GRID_SIZE - 1;
+    if (head.y >= GRID_SIZE) head.y = 0;
+
+    // Self Collision Check (Gently bounce snake back without killing process)
+    const selfCollide = snake.some((seg, idx) => idx !== 0 && seg.x === head.x && seg.y === head.y);
+    if (selfCollide) {
+        // Reverse direction safely
+        dir.x = -dir.x;
+        dir.y = -dir.y;
+        nextDir = { ...dir };
+        return;
+    }
+
+    snake.unshift(head);
+
+    // Check if snake eats food
+    if (head.x === food.x && head.y === food.y) {
+        audio.playEat();
+        triggerQuizModal();
+    } else {
+        snake.pop(); // Remove tail if not eating
+    }
+
+    drawGame();
+}
+
+function drawGame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Grid Lines (Subtle background grid)
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < GRID_SIZE; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * cellSize, 0);
+        ctx.lineTo(i * cellSize, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * cellSize);
+        ctx.lineTo(canvas.width, i * cellSize);
+        ctx.stroke();
+    }
+
+    // Draw Food (Glowing Science Crystal/Apple)
+    const fx = food.x * cellSize + cellSize / 2;
+    const fy = food.y * cellSize + cellSize / 2;
+    const radius = cellSize * 0.42;
+
+    ctx.save();
+    ctx.fillStyle = '#facc15';
+    ctx.shadowColor = '#facc15';
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(fx, fy, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Food Icon (Science Crystal Sparkle)
+    ctx.fillStyle = '#1e293b';
+    ctx.font = `bold ${cellSize * 0.55}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💎', fx, fy + 1);
+    ctx.restore();
+
+    // Draw Snake Body
+    snake.forEach((segment, index) => {
+        const sx = segment.x * cellSize;
+        const sy = segment.y * cellSize;
+
+        ctx.save();
+        if (index === 0) {
+            // Snake Head
+            ctx.fillStyle = '#34d399';
+            ctx.shadowColor = '#10b981';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.roundRect(sx + 1, sy + 1, cellSize - 2, cellSize - 2, 6);
+            ctx.fill();
+
+            // Cute Eyes on Head
+            ctx.fillStyle = '#0f172a';
+            const eyeOffset = cellSize * 0.25;
+            ctx.beginPath();
+            ctx.arc(sx + eyeOffset + 2, sy + eyeOffset + 2, 2.5, 0, Math.PI * 2);
+            ctx.arc(sx + cellSize - eyeOffset - 2, sy + eyeOffset + 2, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Body Segments
+            const alpha = Math.max(0.4, 1 - (index / (snake.length + 5)));
+            ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
+            ctx.beginPath();
+            ctx.roundRect(sx + 2, sy + 2, cellSize - 4, cellSize - 4, 4);
+            ctx.fill();
+        }
+        ctx.restore();
+    });
+}
+
+// --- 4. QUIZ MODAL & EVALUATION ENGINE ---
+
+function triggerQuizModal() {
+    isPaused = true;
+
+    if (currentQuestionIndex >= QUESTIONS_BANK.length) {
+        endGame();
+        return;
+    }
+
+    const qData = QUESTIONS_BANK[currentQuestionIndex];
+    const modalQuiz = document.getElementById('modal-quiz');
+
+    document.getElementById('quiz-question-tag').innerText = `SOALAN ${currentQuestionIndex + 1} / 10`;
+    document.getElementById('quiz-question-text').innerText = qData.question;
+
+    const optsContainer = document.getElementById('quiz-options-container');
+    optsContainer.innerHTML = '';
+
+    const fbBox = document.getElementById('quiz-feedback-box');
+    fbBox.className = 'w-full p-3 rounded-xl text-xs font-bold hidden border leading-relaxed text-left';
+    document.getElementById('btn-quiz-continue').classList.add('hidden');
+
+    qData.options.forEach(opt => {
+        const card = document.createElement('div');
+        card.className = "option-card bg-slate-900 hover:bg-slate-800 p-3 rounded-xl border border-emerald-500/40 flex items-center justify-between text-white";
+        card.innerHTML = `
+            <div class="flex items-center gap-3">
+                <span class="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs flex items-center justify-center flex-shrink-0 shadow">
+                    ${opt.code}
+                </span>
+                <span class="text-xs sm:text-sm font-extrabold text-slate-100 leading-snug">${opt.text}</span>
+            </div>
+            <span class="text-xs text-emerald-400 font-bold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/30">
+                Pilih
+            </span>
+        `;
+        card.onclick = () => evaluateQuizAnswer(opt, qData, card);
+        optsContainer.appendChild(card);
+    });
+
+    modalQuiz.classList.remove('hidden');
+}
+
+function evaluateQuizAnswer(selectedOpt, qData, cardEl) {
+    const fbBox = document.getElementById('quiz-feedback-box');
+    const continueBtn = document.getElementById('btn-quiz-continue');
+    const allCards = document.querySelectorAll('#quiz-options-container .option-card');
+
+    lastAnswerCorrect = selectedOpt.isCorrect;
+
+    if (selectedOpt.isCorrect) {
+        score += 10;
+        correctCount++;
+        audio.playSuccess();
+
+        cardEl.className = "option-card bg-emerald-900/90 p-3 rounded-xl border-2 border-emerald-300 flex items-center justify-between text-white shadow-lg";
+        fbBox.className = "w-full p-3 rounded-xl text-xs font-bold bg-emerald-950/90 border border-emerald-500 text-emerald-200 block text-left";
+        fbBox.innerHTML = `<span>🎉 <b>JAWAPAN TEPAT!</b></span><br>${qData.explanation}`;
+
+        // Grow snake length on correct answer
+        snake.push({ ...snake[snake.length - 1] });
+    } else {
+        audio.playWrong();
+
+        cardEl.className = "option-card bg-rose-950/90 p-3 rounded-xl border-2 border-rose-500 flex items-center justify-between text-white shadow-lg";
+        fbBox.className = "w-full p-3 rounded-xl text-xs font-bold bg-rose-950/90 border border-rose-500 text-rose-200 block text-left";
+        fbBox.innerHTML = `<span>💡 <b>KURANG TEPAT!</b></span><br>${qData.explanation}`;
+    }
+
+    document.getElementById('hud-score').innerText = score;
+    allCards.forEach(c => c.style.pointerEvents = 'none');
+    continueBtn.classList.remove('hidden');
+}
+
+function resumeSnakeGame() {
+    document.getElementById('modal-quiz').classList.add('hidden');
+    currentQuestionIndex++;
+
+    // Update HUD Question tracker
+    document.getElementById('hud-q-num').innerText = Math.min(currentQuestionIndex + 1, 10);
+    document.getElementById('hud-progress-bar').style.width = `${((currentQuestionIndex + 1) / 10) * 100}%`;
+
+    if (currentQuestionIndex >= QUESTIONS_BANK.length) {
+        endGame();
+    } else {
+        spawnFood();
+        isPaused = false;
+    }
+}
+
+// --- 5. END GAME & RESULTS SYSTEM ---
+
+function endGame() {
+    isGameOver = true;
+    isPaused = true;
+
+    const modalEnd = document.getElementById('modal-end');
+    const accuracy = Math.round((correctCount / QUESTIONS_BANK.length) * 100);
+
+    document.getElementById('end-score').innerText = `${score} / 100`;
+    document.getElementById('end-accuracy').innerText = `${accuracy}%`;
+
+    const badgeIcon = document.getElementById('end-badge');
+    const badgeTitle = document.getElementById('end-badge-title');
+
+    if (accuracy >= 80) {
+        badgeIcon.innerText = "👑";
+        badgeTitle.innerText = "PAKAR PERKUMUHAN SAINS";
+    } else if (accuracy >= 60) {
+        badgeIcon.innerText = "🥇";
+        badgeTitle.innerText = "WIRA SAINS PERKUMUHAN";
+    } else if (accuracy >= 40) {
+        badgeIcon.innerText = "🐍";
+        badgeTitle.innerText = "PENJELAJAH SAINS";
+    } else {
+        badgeIcon.innerText = "🌱";
+        badgeTitle.innerText = "PELATIH ULAR SAINS";
+    }
+
+    modalEnd.classList.remove('hidden');
+    if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'KKS_GAME_RESULT', hero: 'kumuhrion', correct: correctCount, total: QUESTIONS_BANK.length }, '*');
+}
+
+function startGame() {
+    audio.init();
+    document.getElementById('modal-start').classList.add('hidden');
+    restartGame();
+}
+
+function restartGame() {
+    score = 0;
+    correctCount = 0;
+    currentQuestionIndex = 0;
+    isGameOver = false;
+    isPaused = false;
+
+    document.getElementById('hud-score').innerText = '0';
+    document.getElementById('hud-q-num').innerText = '1';
+    document.getElementById('hud-progress-bar').style.width = '10%';
+
+    document.getElementById('modal-end').classList.add('hidden');
+    document.getElementById('modal-quiz').classList.add('hidden');
+    document.getElementById('modal-start').classList.add('hidden');
+
+    initSnake();
+
+    if (gameInterval) clearInterval(gameInterval);
+    gameInterval = setInterval(updateGame, 140);
+}
+
+// --- 6. CONTROLS & EVENT LISTENERS ---
+
+function setDirection(dx, dy) {
+    audio.init();
+    // Prevent immediate 180-degree turn
+    if (dx !== 0 && dir.x === -dx) return;
+    if (dy !== 0 && dir.y === -dy) return;
+
+    nextDir = { x: dx, y: dy };
+}
+
+// Keyboard arrow keys & WASD
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') setDirection(0, -1);
+    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') setDirection(0, 1);
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') setDirection(-1, 0);
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') setDirection(1, 0);
+});
+
+// Touch D-Pad buttons
+document.getElementById('btn-up').addEventListener('click', () => setDirection(0, -1));
+document.getElementById('btn-down').addEventListener('click', () => setDirection(0, 1));
+document.getElementById('btn-left').addEventListener('click', () => setDirection(-1, 0));
+document.getElementById('btn-right').addEventListener('click', () => setDirection(1, 0));
+
+// Sound Mute Toggle
+document.getElementById('btn-mute').addEventListener('click', () => {
+    audio.muted = !audio.muted;
+    document.getElementById('btn-mute').innerText = audio.muted ? '🔇' : '🔊';
+});
+
+// Pause Toggle
+document.getElementById('btn-pause').addEventListener('click', () => {
+    isPaused = !isPaused;
+    document.getElementById('btn-pause').innerText = isPaused ? '▶️' : '⏸️';
+});
+
+// Window Load Init
+window.onload = () => {
+    resizeCanvas();
+    initSnake();
+    drawGame();
+};
+
+</script>
+</body>
+</html>
