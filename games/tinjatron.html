@@ -951,7 +951,14 @@
       const modal = document.getElementById('quizModal');
       modal.classList.remove('hidden');
       setTimeout(() => {
-        modal.classList.add('opacity-100');
+        modal.classList.add('opacity-100');if (window.parent && window.parent !== window) {
+    window.parent.postMessage({
+        type: 'KKS_GAME_RESULT',
+        hero: 'tinjatron',
+        correct: questionsAnsweredCount,
+        total: 10
+    }, '*');
+}
         modal.firstElementChild.classList.remove('scale-95');
         modal.firstElementChild.classList.add('scale-100');
       }, 10);
