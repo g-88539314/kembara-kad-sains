@@ -124,7 +124,7 @@ const characters = {
   }
 };
 
-const VIDEO_VERSION = 'kks-single-video-v1';
+const VIDEO_VERSION = 'kks-video-game-gate-v2';
 
 const EMPTY_FLAGS = () => ({
   nafasio: false,
@@ -148,6 +148,8 @@ let state = {
   active: null,
   access: EMPTY_FLAGS(),
   watched: EMPTY_FLAGS(),
+  gamePassed: EMPTY_FLAGS(),
+  gameResult: null,
   videoProgress: EMPTY_VIDEO_PROGRESS(),
   completed: EMPTY_FLAGS(),
   unlocked: EMPTY_FLAGS(),
@@ -173,6 +175,7 @@ function save() {
 function normalizeState() {
   state.access = { ...EMPTY_FLAGS(), ...(state.access || {}) };
   state.watched = { ...EMPTY_FLAGS(), ...(state.watched || {}) };
+  state.gamePassed = { ...EMPTY_FLAGS(), ...(state.gamePassed || {}) };
   state.completed = { ...EMPTY_FLAGS(), ...(state.completed || {}) };
   state.unlocked = { ...EMPTY_FLAGS(), ...(state.unlocked || {}) };
 
@@ -214,6 +217,8 @@ function load() {
       if (state.videoVersion !== VIDEO_VERSION) {
         state.videoProgress = EMPTY_VIDEO_PROGRESS();
         state.watched = EMPTY_FLAGS();
+        state.gamePassed = EMPTY_FLAGS();
+        state.gameResult = null;
         state.videoVersion = VIDEO_VERSION;
       }
     } catch (error) {
@@ -645,49 +650,33 @@ function renderVideoStage(id) {
   }
 
   if (allDone) {
+    const gameFile = `games/${id}.html`;
+    const result = state.gameResult && state.gameResult.hero === id ? state.gameResult : null;
+
+    if (state.gamePassed[id]) {
+      return `
+        <div class="video-box" style="margin-top:20px;padding:18px;border-radius:20px;background:#eefaf1;border:2px solid #a9dfb5;">
+          <h3 style="font-weight:900;font-size:18px;margin-bottom:8px;">🎉 TAHNIAH! PERMAINAN ${c.name} LULUS!</h3>
+          <p style="margin-bottom:14px;">Markah anda: <b>${result ? result.correct : 8}/10</b>. Anda layak ke cabaran seterusnya.</p>
+          <button class="primary" id="startQuiz">🚀 BUKA CABARAN SETERUSNYA</button>
+        </div>`;
+    }
+
+    if (result) {
+      return `
+        <div class="video-box" style="margin-top:20px;padding:18px;border-radius:20px;background:#fff7ed;border:2px solid #fb923c;">
+          <h3 style="font-weight:900;font-size:18px;margin-bottom:8px;">💪 TERUS CUBA, WIRA ${c.name}!</h3>
+          <p style="margin-bottom:14px;">Markah anda: <b>${result.correct}/10</b>. Anda memerlukan sekurang-kurangnya 8/10 untuk membuka cabaran seterusnya.</p>
+          <button class="primary" id="retryGame">🔄 CUBA LAGI</button>
+        </div>`;
+    }
 
     return `
-      <div
-        class="video-box"
-        style="
-          margin-top:20px;
-          padding:18px;
-          border-radius:20px;
-          background:#eefaf1;
-          border:2px solid #a9dfb5;
-        "
-      >
-
-        <div
-          style="
-            font-weight:900;
-            font-size:18px;
-            margin-bottom:10px;
-          "
-        >
-          ✅ VIDEO PEMBELAJARAN ${c.name} SELESAI!
-        </div>
-
-        <div
-          id="videoStatus"
-          style="margin-bottom:14px;"
-        >
-          Anda telah melengkapkan satu video pembelajaran. Cabaran kini dibuka.
-        </div>
-
-        <div class="actions">
-
-          <button
-            class="primary"
-            id="startQuiz"
-          >
-            🚀 MULA CABARAN ${c.name}
-          </button>
-
-        </div>
-
-      </div>
-    `;
+      <div class="video-box" style="margin-top:20px;padding:18px;border-radius:20px;background:#f5f9ff;border:2px solid #c6dbef;">
+        <h3 style="font-weight:900;font-size:18px;margin-bottom:8px;">🎮 PERMAINAN INTERAKTIF ${c.name}</h3>
+        <p style="margin-bottom:14px;">Jawab 10 soalan dalam permainan. Anda perlu mendapat sekurang-kurangnya <b>8/10</b> untuk membuka cabaran seterusnya.</p>
+        <iframe id="heroGameFrame" src="${gameFile}" title="Permainan ${c.name}" style="width:100%;height:720px;border:0;border-radius:16px;background:#071525;" allow="fullscreen; autoplay"></iframe>
+      </div>`;
   }
 
   return `
@@ -928,9 +917,19 @@ function openLearn(id) {
     );
 
   } else {
+    const startQuizButton = $('#startQuiz');
+    if (startQuizButton) {
+      startQuizButton.onclick = () => startQuiz(id);
+    }
+  }
 
-    $('#startQuiz').onclick =
-      () => startQuiz(id);
+  const retryGameButton = $('#retryGame');
+  if (retryGameButton) {
+    retryGameButton.onclick = () => {
+      state.gameResult = null;
+      save();
+      openLearn(id);
+    };
   }
 
   $('#backHeroes').onclick = () => {
@@ -941,6 +940,24 @@ function openLearn(id) {
       });
   };
 }
+
+window.addEventListener('message', event => {
+  const data = event.data;
+  if (!data || data.type !== 'KKS_GAME_RESULT') return;
+  if (!characters[data.hero] || data.total !== 10) return;
+
+  const correct = Math.max(0, Math.min(10, Number(data.correct) || 0));
+  const hero = data.hero;
+  state.gamePassed[hero] = correct >= 8;
+  state.gameResult = { hero, correct, total: 10 };
+  save();
+  renderProgress();
+  renderCollection();
+  if (state.active === hero) openLearn(hero);
+  toast(correct >= 8
+    ? `🎉 ${characters[hero].name}: ${correct}/10! Cabaran seterusnya dibuka.`
+    : `💪 ${characters[hero].name}: ${correct}/10. Cuba permainan sekali lagi.`);
+});
 
 let quiz = {
   id: null,
@@ -957,6 +974,11 @@ function startQuiz(id) {
       '🎬 Sila tonton video sehingga tamat dahulu.'
     );
 
+    return;
+  }
+
+  if (!state.gamePassed[id]) {
+    toast('🔒 Sila lulus permainan interaktif dengan sekurang-kurangnya 8/10 dahulu.');
     return;
   }
 
