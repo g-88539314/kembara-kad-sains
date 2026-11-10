@@ -675,7 +675,7 @@ function renderVideoStage(id) {
       <div class="video-box" style="margin-top:20px;padding:18px;border-radius:20px;background:#f5f9ff;border:2px solid #c6dbef;">
         <h3 style="font-weight:900;font-size:18px;margin-bottom:8px;">🎮 PERMAINAN INTERAKTIF ${c.name}</h3>
         <p style="margin-bottom:14px;">Jawab 10 soalan dalam permainan. Anda perlu mendapat sekurang-kurangnya <b>8/10</b> untuk membuka cabaran seterusnya.</p>
-        <iframe id="heroGameFrame" src="${gameFile}" title="Permainan ${c.name}" style="width:100%;height:720px;border:0;border-radius:16px;background:#071525;" allow="fullscreen; autoplay"></iframe>
+        <iframe id="heroGameFrame" src="${gameFile}" title="Permainan ${c.name}" style="display:block;width:100%;height:82vh;min-height:760px;max-height:1100px;border:0;border-radius:16px;background:#071525;" allow="fullscreen; autoplay"></iframe>
       </div>`;
   }
 
