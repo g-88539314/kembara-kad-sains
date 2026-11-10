@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sains Pacman: Gerak Balas Terhadap Rangsangan</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Press Start 2P for Arcade Vibe -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #070913;
+            color: #ffffff;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .arcade-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        /* Canvas glow effects */
+        canvas {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.4), inset 0 0 15px rgba(6, 182, 212, 0.2);
+            border: 3px solid #06b6d4;
+            border-radius: 12px;
+        }
+        /* Custom modal animation */
+        @keyframes modalPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        /* Custom glow text */
+        .neon-text-yellow {
+            text-shadow: 0 0 8px rgba(250, 204, 21, 0.8), 0 0 20px rgba(250, 204, 21, 0.4);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(6, 182, 212, 0.8), 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 md:p-4 overflow-x-hidden bg-slate-950 text-slate-100">
+
+    <!-- Header / Stats Bar -->
+    <header class="w-full max-w-4xl flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 md:p-4 shadow-xl backdrop-blur">
+        <!-- Title & Level -->
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-400 p-2 rounded-xl text-slate-950 font-black text-xl shadow-lg shadow-amber-500/30">
+                <i class="fa-solid font-bold fa-ghost"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg md:text-xl text-amber-400 tracking-wide neon-text-yellow">SAINS PACMAN</h1>
+                <p class="text-xs text-cyan-400 font-semibold tracking-wider">Tahun 4: Gerak Balas Rangsangan</p>
+            </div>
+        </div>
+
+        <!-- Dynamic Game Indicators -->
+        <div class="flex items-center space-x-4 md:space-x-6">
+            <!-- Nyawa (Lives) -->
+            <div class="flex flex-col items-center md:items-end">
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nyawa</span>
+                <div id="lives-container" class="flex space-x-1 text-red-500 text-lg md:text-xl">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+
+            <!-- Bintang Kuiz (Stars counter) -->
+            <div class="flex flex-col items-center md:items-end">
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Bintang</span>
+                <div class="flex items-center space-x-1 text-amber-400 font-bold text-base md:text-lg">
+                    <i class="fa-solid fa-star text-amber-400 animate-pulse"></i>
+                    <span id="stars-counter">0 / 10</span>
+                </div>
+            </div>
+
+            <!-- Skor (Score) -->
+            <div class="flex flex-col items-center md:items-end">
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Mata</span>
+                <span id="score-text" class="arcade-font text-cyan-400 text-sm md:text-base neon-text-cyan">0000</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-4xl flex flex-col items-center justify-center my-3 relative">
+        <!-- Canvas Canvas View -->
+        <div class="relative w-full flex justify-center items-center">
+            <canvas id="gameCanvas" class="bg-slate-950 max-w-full h-auto cursor-pointer"></canvas>
+
+            <!-- Overlay Start/Pause Screen -->
+            <div id="start-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md rounded-xl flex flex-col items-center justify-center p-6 text-center z-10 border border-cyan-500/30">
+                <div class="w-20 h-20 bg-amber-400/10 rounded-full flex items-center justify-center mb-4 border-2 border-amber-400 animate-bounce">
+                    <i class="fa-solid fa-graduation-cap text-4xl text-amber-400"></i>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-black text-white mb-2">CABARAN SAINS TAHUN 4</h2>
+                <p class="text-slate-300 max-w-md text-sm md:text-base mb-6">
+                    Bantu Pacman kumpul <span class="text-amber-400 font-bold">10 Bintang Rangsangan</span> dan elak daripada ditangkap oleh Monster! Setiap bintang akan menguji pengetahuan Sains anda.
+                </p>
+                
+                <button id="btn-start" onclick="startGame()" class="px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-lg rounded-xl shadow-lg shadow-cyan-500/40 transition transform active:scale-95 flex items-center space-x-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>MULA PERMAINAN</span>
+                </button>
+
+                <div class="mt-6 flex items-center space-x-4 text-xs text-slate-400">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-keyboard text-cyan-400"></i> Guna Anak Panah / WASD</span>
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-mobile-screen text-cyan-400"></i> D-Pad Sentuh di Bawah</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Touch Controls (D-Pad) -->
+    <footer class="w-full max-w-4xl flex flex-col items-center pb-2">
+        <div class="grid grid-cols-3 gap-2 w-48 h-48 md:hidden my-1">
+            <div></div>
+            <button onclick="sendInput('UP')" class="bg-slate-800/90 active:bg-cyan-600 border border-slate-700 active:border-cyan-400 text-cyan-400 active:text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg transition active:scale-90">
+                <i class="fa-solid fa-caret-up"></i>
+            </button>
+            <div></div>
+
+            <button onclick="sendInput('LEFT')" class="bg-slate-800/90 active:bg-cyan-600 border border-slate-700 active:border-cyan-400 text-cyan-400 active:text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg transition active:scale-90">
+                <i class="fa-solid fa-caret-left"></i>
+            </button>
+            <div class="flex items-center justify-center text-slate-600 text-xs font-bold">D-PAD</div>
+            <button onclick="sendInput('RIGHT')" class="bg-slate-800/90 active:bg-cyan-600 border border-slate-700 active:border-cyan-400 text-cyan-400 active:text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg transition active:scale-90">
+                <i class="fa-solid fa-caret-right"></i>
+            </button>
+
+            <div></div>
+            <button onclick="sendInput('DOWN')" class="bg-slate-800/90 active:bg-cyan-600 border border-slate-700 active:border-cyan-400 text-cyan-400 active:text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg transition active:scale-90">
+                <i class="fa-solid fa-caret-down"></i>
+            </button>
+            <div></div>
+        </div>
+    </footer>
+
+    <!-- Quiz Modal Container -->
+    <div id="quiz-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border-2 border-amber-400/80 rounded-2xl max-w-xl w-full p-6 shadow-2xl shadow-amber-500/20 animate-pop relative">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-amber-400 text-slate-950 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
+                        <i class="fa-solid fa-star mr-1"></i> Soalan <span id="quiz-num">1</span> / 10
+                    </span>
+                    <span class="text-xs text-slate-400 font-semibold">Sains Tahun 4</span>
+                </div>
+                <div class="text-amber-400 text-xl font-bold">
+                    +100 Mata
+                </div>
+            </div>
+
+            <!-- Question Text -->
+            <div class="mb-6">
+                <h3 id="quiz-question" class="text-lg md:text-xl font-extrabold text-white leading-relaxed">
+                    Soalan akan dipaparkan di sini...
+                </h3>
+            </div>
+
+            <!-- Options Grid -->
+            <div id="quiz-options" class="grid grid-cols-1 gap-3 mb-6">
+                <!-- Buttons will be dynamically inserted here -->
+            </div>
+
+            <!-- Feedback Area (Initially Hidden) -->
+            <div id="quiz-feedback" class="hidden p-4 rounded-xl border mb-4">
+                <div id="feedback-title" class="font-extrabold text-base mb-1 flex items-center gap-2"></div>
+                <div id="feedback-explanation" class="text-sm text-slate-300"></div>
+            </div>
+
+            <!-- Action Button -->
+            <button id="btn-next-question" onclick="resumeAfterQuiz()" class="hidden w-full py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-extrabold rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2">
+                <span>TERUSKAN PERMAINAN</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border-2 border-red-500 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl shadow-red-500/20 animate-pop">
+            <div class="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-500 text-red-500 text-4xl">
+                <i class="fa-solid fa-heart-crack"></i>
+            </div>
+            <h2 class="text-3xl font-black text-red-500 mb-2">PERMAINAN TAMAT</h2>
+            <p class="text-slate-300 text-sm mb-6">Jangan putus asa! Monster telah menangkap anda. Jom cuba lagi untuk kuasai topik Sains ini.</p>
+            
+            <div class="bg-slate-800/60 rounded-xl p-4 mb-6 border border-slate-700 flex justify-around">
+                <div>
+                    <div class="text-xs text-slate-400 font-bold uppercase">Skor Akhir</div>
+                    <div id="final-score-fail" class="text-xl font-black text-amber-400">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 font-bold uppercase">Bintang Dikutip</div>
+                    <div id="final-stars-fail" class="text-xl font-black text-cyan-400">0 / 10</div>
+                </div>
+            </div>
+
+            <button onclick="resetGame()" class="w-full py-3.5 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white font-extrabold text-base rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>CUBA LAGI</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border-2 border-emerald-400 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl shadow-emerald-500/30 animate-pop">
+            <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-400 text-amber-300 text-4xl animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-2xl md:text-3xl font-black text-emerald-400 mb-1">SYABAS! WIRA SAINS!</h2>
+            <p class="text-slate-300 text-sm mb-6">Anda telah berjaya menjawab semua 10 soalan gerak balas terhadap rangsangan dengan cemerlang!</p>
+            
+            <div class="bg-slate-800/80 rounded-xl p-4 mb-6 border border-slate-700 grid grid-cols-2 gap-3 text-center">
+                <div class="p-2 bg-slate-900/60 rounded-lg">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase">Jumlah Mata</div>
+                    <div id="vic-score" class="text-xl font-black text-amber-400">0</div>
+                </div>
+                <div class="p-2 bg-slate-900/60 rounded-lg">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase">Nyawa Berbaki</div>
+                    <div id="vic-lives" class="text-xl font-black text-red-400">0</div>
+                </div>
+            </div>
+
+            <button onclick="resetGame()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-base rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>MAIN SEMULA</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        /* --- Web Audio API Synthesizer Sound Engine --- */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+            playChomp() {
+                this.init();
+                this.playTone(400, 'triangle', 0.08, 0.05);
+            }
+            playStar() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'sine', 0.15, 0.1), idx * 60);
+                });
+            }
+            playCorrect() {
+                this.init();
+                if (!this.ctx) return;
+                [587.33, 739.99, 880, 1174.66].forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'triangle', 0.2, 0.12), idx * 80);
+                });
+            }
+            playWrong() {
+                this.init();
+                if (!this.ctx) return;
+                this.playTone(180, 'sawtooth', 0.3, 0.15);
+                setTimeout(() => this.playTone(130, 'sawtooth', 0.4, 0.15), 150);
+            }
+            playHit() {
+                this.init();
+                if (!this.ctx) return;
+                this.playTone(120, 'square', 0.3, 0.2);
+            }
+            playVictory() {
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50, 880, 1046.50];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'sine', 0.3, 0.15), idx * 120);
+                });
+            }
+        }
+
+        const soundFx = new SoundEngine();
+
+        /* --- 10 Soalan Sains Tahun 4 (Gerak Balas Terhadap Rangsangan) --- */
+        const scienceQuestions = [
+            {
+                id: 1,
+                question: "Apakah organ deria yang bergerak balas terhadap rangsangan CAHAYA?",
+                options: ["A. Mata", "B. Telinga", "C. Hidung", "D. Kulit"],
+                answer: 0,
+                explanation: "Syabas! Mata ialah organ deria penglihatan yang peka dan bergerak balas terhadap rangsangan cahaya!"
+            },
+            {
+                id: 2,
+                question: "Pucuk tumbuhan sentiasa tumbuh membengkok ke arah apa?",
+                options: ["A. Air", "B. Cahaya matahari", "C. Graviti", "D. Sentuhan"],
+                answer: 1,
+                explanation: "Tepat sekali! Pucuk tumbuhan bergerak balas terhadap cahaya matahari (Fototropisme) untuk fotosintesis!"
+            },
+            {
+                id: 3,
+                question: "Bahagian tumbuhan yang manakah bergerak balas mengikut arah GRAVITI dan AIR?",
+                options: ["A. Bunga", "B. Daun", "C. Akar", "D. Batang"],
+                answer: 2,
+                explanation: "Hebat! Akar tumbuhan tumbuh ke bawah mengikut graviti (Geotropisme) dan ke arah air (Hidrotropisme)."
+            },
+            {
+                id: 4,
+                question: "Daun pokok semalu menguncup apabila disentuh. Apakah rangsangan yang menyebabkan tindak balas ini?",
+                options: ["A. Cahaya", "B. Sentuhan", "C. Bau", "D. Air"],
+                answer: 1,
+                explanation: "Betul! Sentuhan ialah rangsangan yang menyebabkan daun pokok semalu terkatup rapat dengan pantas!"
+            },
+            {
+                id: 5,
+                question: "Apakah tindak balas pantas manusia apabila tangan tersentuh cawan yang amat PANAS secara tidak sengaja?",
+                options: ["A. Menarik tangan dengan cepat", "B. Membiarkan tangan di situ", "C. Menutup mata", "D. Melompat"],
+                answer: 0,
+                explanation: "Tahniah! Menarik tangan dengan cepat ialah tindakan refleks automatik untuk mengelakkan kecederaan daripada haba!"
+            },
+            {
+                id: 6,
+                question: "Mengapakah murid mengelip atau menutup mata apabila lampu suluh disuluh tepat ke mata?",
+                options: ["A. Kerana mengantuk", "B. Melindungi mata daripada cahaya terlalu terang", "C. Mengesan bunyi", "D. Menguji deria rasa"],
+                answer: 1,
+                explanation: "Tepat! Mata terkelip secara automatik untuk melindungi retina daripada cahaya berlebihan yang berbahaya."
+            },
+            {
+                id: 7,
+                question: "Apakah rangsangan yang dikesan oleh organ deria HIDUNG?",
+                options: ["A. Rasa", "B. Sentuhan", "C. Bau", "D. Bunyi"],
+                answer: 2,
+                explanation: "Bijak! Hidung mempunyai sel deria bau yang mengesan pelbagai bahan kimia/bau di udara."
+            },
+            {
+                id: 8,
+                question: "Bunyi siren ambulans mengaktifkan deria pendengaran. Organ deria apakah yang terlibat?",
+                options: ["A. Mata", "B. Telinga", "C. Hidung", "D. Kulit"],
+                answer: 1,
+                explanation: "Betul! Telinga menerima rangsangan getaran bunyi siren dan menghantar isyarat ke otak."
+            },
+            {
+                id: 9,
+                question: "Akar tumbuhan tumbuh ke bawah mengikut daya tarikan graviti. Pergerakan ini dikenali sebagai...",
+                options: ["A. Geotropisme", "B. Fototropisme", "C. Hidrotropisme", "D. Sentuhan"],
+                answer: 0,
+                explanation: "Cemerlang! Geotropisme ialah gerak balas bahagian tumbuhan terhadap daya tarikan graviti bumi."
+            },
+            {
+                id: 10,
+                question: "Antara berikut, yang manakah organ deria manusia yang bergerak balas terhadap rangsangan sentuhan, sakit, dan suhu?",
+                options: ["A. Lidah", "B. Mata", "C. Kulit", "D. Hidung"],
+                answer: 2,
+                explanation: "Sempurna! Kulit ialah organ terbesar manusia yang dilengkapi reseptor sakit, sentuhan, sejuk, dan panas!"
+            }
+        ];
+
+        /* --- Map Setup (19 rows x 19 columns) --- */
+        // 1 = Wall, 0 = Pellet path, 2 = Ghost Home/Empty, 3 = Star question point
+        const initialGrid = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,3,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,3,1],
+            [1,0,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,0,1],
+            [1,0,1,1,0,1,0,0,0,1,0,0,0,1,0,1,1,0,1],
+            [1,0,0,0,0,1,1,1,0,1,0,1,1,1,0,0,0,0,1],
+            [1,1,1,0,0,0,0,0,0,3,0,0,0,0,0,0,1,1,1],
+            [1,0,0,0,1,0,1,1,1,2,1,1,1,0,1,0,0,0,1],
+            [1,0,1,0,1,0,1,2,2,2,2,2,1,0,1,0,1,0,1],
+            [1,0,1,0,1,0,1,2,2,2,2,2,1,0,1,0,1,0,1],
+            [1,3,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,3,1],
+            [1,0,1,0,1,0,0,0,3,0,3,0,0,0,1,0,1,0,1],
+            [1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1],
+            [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+            [1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1],
+            [1,3,0,0,1,0,0,0,0,3,0,0,0,0,1,0,0,3,1],
+            [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,1,3,0,0,1,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        let grid = [];
+        const ROWS = 18;
+        const COLS = 19;
+        let tileSize = 24;
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State Variables
+        let lives = 5;
+        let score = 0;
+        let starsCollected = 0;
+        let activeQuestionIndex = 0;
+        let isGameRunning = false;
+        let isPaused = false;
+        let animFrameId = null;
+
+        // Entities
+        let pacman = {
+            x: 9,
+            y: 12,
+            px: 9 * 24,
+            py: 12 * 24,
+            dirX: 0,
+            dirY: 0,
+            nextDirX: 0,
+            nextDirY: 0,
+            speed: 2,
+            mouthAngle: 0.2,
+            mouthSpeed: 0.02
+        };
+
+        const ghostColors = [
+            { name: 'Blinky', color: '#ef4444' }, // Red
+            { name: 'Pinky', color: '#ec4899' },  // Pink
+            { name: 'Inky', color: '#06b6d4' },   // Cyan
+            { name: 'Clyde', color: '#f97316' }   // Orange
+        ];
+
+        let ghosts = [];
+
+        function initGhosts() {
+            ghosts = [
+                { x: 8, y: 7, px: 8 * tileSize, py: 7 * tileSize, dirX: 1, dirY: 0, color: ghostColors[0].color, speed: 1.5 },
+                { x: 10, y: 7, px: 10 * tileSize, py: 7 * tileSize, dirX: -1, dirY: 0, color: ghostColors[1].color, speed: 1.5 },
+                { x: 9, y: 8, px: 9 * tileSize, py: 8 * tileSize, dirX: 0, dirY: -1, color: ghostColors[2].color, speed: 1.5 },
+                { x: 9, y: 6, px: 9 * tileSize, py: 6 * tileSize, dirX: 0, dirY: 1, color: ghostColors[3].color, speed: 1.5 }
+            ];
+        }
+
+        // Resize Canvas dynamically to maintain crisp pixel layout
+        function resizeCanvas() {
+            const maxW = Math.min(window.innerWidth - 32, 540);
+            tileSize = Math.floor(maxW / COLS);
+            canvas.width = COLS * tileSize;
+            canvas.height = ROWS * tileSize;
+            
+            // Recalculate pixel positions
+            pacman.px = pacman.x * tileSize;
+            pacman.py = pacman.y * tileSize;
+            ghosts.forEach(g => {
+                g.px = g.x * tileSize;
+                g.py = g.y * tileSize;
+            });
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        /* --- Game Controls --- */
+        window.addEventListener('keydown', (e) => {
+            soundFx.init();
+            switch(e.key) {
+                case 'ArrowUp': case 'w': case 'W':
+                    sendInput('UP'); break;
+                case 'ArrowDown': case 's': case 'S':
+                    sendInput('DOWN'); break;
+                case 'ArrowLeft': case 'a': case 'A':
+                    sendInput('LEFT'); break;
+                case 'ArrowRight': case 'd': case 'D':
+                    sendInput('RIGHT'); break;
+            }
+        });
+
+        function sendInput(dir) {
+            if (!isGameRunning || isPaused) return;
+            if (dir === 'UP') { pacman.nextDirX = 0; pacman.nextDirY = -1; }
+            if (dir === 'DOWN') { pacman.nextDirX = 0; pacman.nextDirY = 1; }
+            if (dir === 'LEFT') { pacman.nextDirX = -1; pacman.nextDirY = 0; }
+            if (dir === 'RIGHT') { pacman.nextDirX = 1; pacman.nextDirY = 0; }
+        }
+
+        /* --- Core Game Loop Functions --- */
+        function startGame() {
+            soundFx.init();
+            document.getElementById('start-overlay').classList.add('hidden');
+            resetGridAndState();
+            isGameRunning = true;
+            isPaused = false;
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetGridAndState() {
+            // Deep copy map layout
+            grid = JSON.parse(JSON.stringify(initialGrid));
+            lives = 5;
+            score = 0;
+            starsCollected = 0;
+            activeQuestionIndex = 0;
+            
+            updateLivesUI();
+            updateScoreUI();
+            resetPositions();
+            resizeCanvas();
+        }
+
+        function resetPositions() {
+            pacman.x = 9;
+            pacman.y = 12;
+            pacman.px = pacman.x * tileSize;
+            pacman.py = pacman.y * tileSize;
+            pacman.dirX = 0;
+            pacman.dirY = 0;
+            pacman.nextDirX = 0;
+            pacman.nextDirY = 0;
+            initGhosts();
+            resizeCanvas();
+        }
+
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            if (!isGameRunning) return;
+
+            if (!isPaused) {
+                updateLogic();
+                renderCanvas();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* --- Logic Updates --- */
+        function updateLogic() {
+            // 1. Move Pacman
+            // Check if Pacman is aligned with tile grid to change direction
+            const isCenteredX = Math.abs((pacman.px % tileSize)) < pacman.speed;
+            const isCenteredY = Math.abs((pacman.py % tileSize)) < pacman.speed;
+
+            if (isCenteredX && isCenteredY) {
+                const currentGridX = Math.round(pacman.px / tileSize);
+                const currentGridY = Math.round(pacman.py / tileSize);
+                pacman.x = currentGridX;
+                pacman.y = currentGridY;
+
+                // Check for items at current cell
+                handleTileInteraction(currentGridX, currentGridY);
+
+                // Check if next direction is valid (not a wall)
+                if (canMove(currentGridX, currentGridY, pacman.nextDirX, pacman.nextDirY)) {
+                    pacman.dirX = pacman.nextDirX;
+                    pacman.dirY = pacman.nextDirY;
+                }
+
+                // Stop if current direction hits wall
+                if (!canMove(currentGridX, currentGridY, pacman.dirX, pacman.dirY)) {
+                    pacman.dirX = 0;
+                    pacman.dirY = 0;
+                }
+            }
+
+            pacman.px += pacman.dirX * pacman.speed;
+            pacman.py += pacman.dirY * pacman.speed;
+
+            // Mouth chomping animation
+            pacman.mouthAngle += pacman.mouthSpeed;
+            if (pacman.mouthAngle > 0.4 || pacman.mouthAngle < 0.05) {
+                pacman.mouthSpeed = -pacman.mouthSpeed;
+            }
+
+            // 2. Move Ghosts
+            ghosts.forEach(ghost => {
+                const gCenteredX = Math.abs((ghost.px % tileSize)) < ghost.speed;
+                const gCenteredY = Math.abs((ghost.py % tileSize)) < ghost.speed;
+
+                if (gCenteredX && gCenteredY) {
+                    const gGridX = Math.round(ghost.px / tileSize);
+                    const gGridY = Math.round(ghost.py / tileSize);
+                    ghost.x = gGridX;
+                    ghost.y = gGridY;
+
+                    // Find all valid move directions for ghost
+                    const possibleDirs = [];
+                    const dirs = [
+                        { x: 0, y: -1 }, { x: 0, y: 1 },
+                        { x: -1, y: 0 }, { x: 1, y: 0 }
+                    ];
+
+                    dirs.forEach(d => {
+                        // Prevent turning back 180 deg immediately unless stuck
+                        if (!(d.x === -ghost.dirX && d.y === -ghost.dirY)) {
+                            if (canMoveGhost(gGridX, gGridY, d.x, d.y)) {
+                                possibleDirs.push(d);
+                            }
+                        }
+                    });
+
+                    // If no direction, allow turning back
+                    if (possibleDirs.length === 0) {
+                        dirs.forEach(d => {
+                            if (canMoveGhost(gGridX, gGridY, d.x, d.y)) possibleDirs.push(d);
+                        });
+                    }
+
+                    if (possibleDirs.length > 0) {
+                        // AI: 40% chance move towards Pacman, 60% random
+                        if (Math.random() < 0.4) {
+                            possibleDirs.sort((a, b) => {
+                                const distA = Math.hypot((gGridX + a.x) - pacman.x, (gGridY + a.y) - pacman.y);
+                                const distB = Math.hypot((gGridX + b.x) - pacman.x, (gGridY + b.y) - pacman.y);
+                                return distA - distB;
+                            });
+                            ghost.dirX = possibleDirs[0].x;
+                            ghost.dirY = possibleDirs[0].y;
+                        } else {
+                            const randDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                            ghost.dirX = randDir.x;
+                            ghost.dirY = randDir.y;
+                        }
+                    }
+                }
+
+                ghost.px += ghost.dirX * ghost.speed;
+                ghost.py += ghost.dirY * ghost.speed;
+
+                // Collision detection with Pacman
+                const dist = Math.hypot((pacman.px + tileSize/2) - (ghost.px + tileSize/2), (pacman.py + tileSize/2) - (ghost.py + tileSize/2));
+                if (dist < tileSize * 0.75) {
+                    handleGhostCollision();
+                }
+            });
+        }
+
+        function canMove(gx, gy, dx, dy) {
+            const nextX = gx + dx;
+            const nextY = gy + dy;
+            if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) return false;
+            return grid[nextY][nextX] !== 1; // 1 is wall
+        }
+
+        function canMoveGhost(gx, gy, dx, dy) {
+            const nextX = gx + dx;
+            const nextY = gy + dy;
+            if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) return false;
+            return grid[nextY][nextX] !== 1;
+        }
+
+        /* --- Tile Interactions --- */
+        function handleTileInteraction(x, y) {
+            // Eat regular pellet (0)
+            if (grid[y][x] === 0) {
+                grid[y][x] = 2; // set to empty space
+                score += 10;
+                updateScoreUI();
+                soundFx.playChomp();
+            }
+            // Eat Quiz Star (3)
+            else if (grid[y][x] === 3) {
+                grid[y][x] = 2; // clear star
+                soundFx.playStar();
+                triggerQuizModal();
+            }
+        }
+
+        /* --- Collision Logic --- */
+        function handleGhostCollision() {
+            soundFx.playHit();
+            lives--;
+            updateLivesUI();
+
+            if (lives <= 0) {
+                isGameRunning = false;
+                document.getElementById('final-score-fail').innerText = score;
+                document.getElementById('final-stars-fail').innerText = `${starsCollected} / 10`;
+                document.getElementById('game-over-modal').classList.remove('hidden');
+            } else {
+                // Flash canvas red border briefly
+                canvas.style.borderColor = '#ef4444';
+                setTimeout(() => { canvas.style.borderColor = '#06b6d4'; }, 500);
+                resetPositions();
+            }
+        }
+
+        /* --- Quiz & Stars System --- */
+        function triggerQuizModal() {
+            isPaused = true;
+            const q = scienceQuestions[starsCollected];
+            
+            document.getElementById('quiz-num').innerText = starsCollected + 1;
+            document.getElementById('quiz-question').innerText = q.question;
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            // Reset Feedback UI
+            const feedbackEl = document.getElementById('quiz-feedback');
+            feedbackEl.classList.add('hidden');
+            document.getElementById('btn-next-question').classList.add('hidden');
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-white font-semibold transition active:scale-98 flex items-center justify-between";
+                btn.innerHTML = `<span>${opt}</span><i class="fa-regular fa-circle text-slate-500"></i>`;
+                btn.onclick = () => selectAnswer(idx, q);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quiz-modal').classList.remove('hidden');
+        }
+
+        function selectAnswer(chosenIdx, questionObj) {
+            const optionsContainer = document.getElementById('quiz-options');
+            const buttons = optionsContainer.children;
+
+            // Disable all buttons after choice
+            for (let btn of buttons) {
+                btn.disabled = true;
+                btn.classList.add('cursor-not-allowed', 'opacity-80');
+            }
+
+            const feedbackEl = document.getElementById('quiz-feedback');
+            const titleEl = document.getElementById('feedback-title');
+            const expEl = document.getElementById('feedback-explanation');
+            const btnNext = document.getElementById('btn-next-question');
+
+            if (chosenIdx === questionObj.answer) {
+                // Correct Answer
+                soundFx.playCorrect();
+                score += 100;
+                updateScoreUI();
+                
+                buttons[chosenIdx].className = "w-full text-left p-3.5 bg-emerald-600/30 border-2 border-emerald-500 rounded-xl text-emerald-300 font-bold flex items-center justify-between";
+                buttons[chosenIdx].querySelector('i').className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+
+                feedbackEl.className = "p-4 rounded-xl border mb-4 bg-emerald-950/60 border-emerald-500/50";
+                titleEl.className = "font-extrabold text-base mb-1 text-emerald-400 flex items-center gap-2";
+                titleEl.innerHTML = `<i class="fa-solid fa-face-smile"></i> Tepat Sekali! (+100 Mata)`;
+                expEl.innerText = questionObj.explanation;
+            } else {
+                // Wrong Answer
+                soundFx.playWrong();
+                
+                buttons[chosenIdx].className = "w-full text-left p-3.5 bg-rose-600/30 border-2 border-rose-500 rounded-xl text-rose-300 font-bold flex items-center justify-between";
+                buttons[chosenIdx].querySelector('i').className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+
+                // Highlight correct one
+                buttons[questionObj.answer].className = "w-full text-left p-3.5 bg-emerald-600/30 border-2 border-emerald-500 rounded-xl text-emerald-300 font-bold flex items-center justify-between";
+
+                feedbackEl.className = "p-4 rounded-xl border mb-4 bg-amber-950/60 border-amber-500/50";
+                titleEl.className = "font-extrabold text-base mb-1 text-amber-400 flex items-center gap-2";
+                titleEl.innerHTML = `<i class="fa-solid fa-lightbulb"></i> Mari Belajar! Jawapan Betul Ialah ${questionObj.options[questionObj.answer]}`;
+                expEl.innerText = questionObj.explanation;
+            }
+
+            feedbackEl.classList.remove('hidden');
+            btnNext.classList.remove('hidden');
+        }
+
+        function resumeAfterQuiz() {
+            starsCollected++;
+            document.getElementById('stars-counter').innerText = `${starsCollected} / 10`;
+            document.getElementById('quiz-modal').classList.add('hidden');
+
+            if (starsCollected >= 10) {
+                // Victory!
+                soundFx.playVictory();
+                isGameRunning = false;
+                document.getElementById('vic-score').innerText = score;
+                document.getElementById('vic-lives').innerText = `${lives} / 5`;
+                document.getElementById('victory-modal').classList.remove('hidden');
+            } else {
+                isPaused = false;
+            }
+        }
+
+        /* --- UI Render Helpers --- */
+        function updateLivesUI() {
+            const container = document.getElementById('lives-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const heart = document.createElement('i');
+                if (i < lives) {
+                    heart.className = 'fa-solid fa-heart text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]';
+                } else {
+                    heart.className = 'fa-regular fa-heart text-slate-700';
+                }
+                container.appendChild(heart);
+            }
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score-text').innerText = String(score).padStart(4, '0');
+        }
+
+        function resetGame() {
+            document.getElementById('game-over-modal').classList.add('hidden');
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('stars-counter').innerText = `0 / 10`;
+            startGame();
+        }
+
+        /* --- Canvas Rendering --- */
+        let starPulse = 0;
+
+        function renderCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            starPulse += 0.05;
+
+            // Draw Grid (Walls, Pellets, Stars)
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const tile = grid[r][c];
+                    const cx = c * tileSize + tileSize / 2;
+                    const cy = r * tileSize + tileSize / 2;
+
+                    if (tile === 1) {
+                        // Neon Wall
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+
+                        ctx.strokeStyle = '#06b6d4';
+                        ctx.lineWidth = 2;
+                        ctx.shadowColor = '#06b6d4';
+                        ctx.shadowBlur = 6;
+                        ctx.strokeRect(c * tileSize + 2, r * tileSize + 2, tileSize - 4, tileSize - 4);
+                        ctx.shadowBlur = 0; // reset
+                    } else if (tile === 0) {
+                        // Small Science Energy Dots
+                        ctx.fillStyle = '#67e8f9';
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (tile === 3) {
+                        // Glowing Animated Quiz Star
+                        const scale = 1 + Math.sin(starPulse) * 0.15;
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.scale(scale, scale);
+
+                        ctx.shadowColor = '#facc15';
+                        ctx.shadowBlur = 12;
+                        ctx.fillStyle = '#facc15';
+
+                        // Draw Star Shape
+                        drawStar(ctx, 0, 0, 5, tileSize * 0.38, tileSize * 0.18);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }
+            }
+
+            // Draw Pacman
+            ctx.save();
+            const pacCX = pacman.px + tileSize / 2;
+            const pacCY = pacman.py + tileSize / 2;
+
+            let angle = 0;
+            if (pacman.dirX === 1) angle = 0;
+            if (pacman.dirX === -1) angle = Math.PI;
+            if (pacman.dirY === -1) angle = Math.PI * 1.5;
+            if (pacman.dirY === 1) angle = Math.PI * 0.5;
+
+            ctx.translate(pacCX, pacCY);
+            ctx.rotate(angle);
+
+            ctx.fillStyle = '#facc15';
+            ctx.shadowColor = '#facc15';
+            ctx.shadowBlur = 10;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, tileSize * 0.42, pacman.mouthAngle, Math.PI * 2 - pacman.mouthAngle);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+            ctx.restore();
+
+            // Draw Ghosts
+            ghosts.forEach(ghost => {
+                const gCX = ghost.px + tileSize / 2;
+                const gCY = ghost.py + tileSize / 2;
+
+                ctx.save();
+                ctx.translate(gCX, gCY);
+
+                ctx.fillStyle = ghost.color;
+                ctx.shadowColor = ghost.color;
+                ctx.shadowBlur = 8;
+
+                // Ghost Body Shape
+                const r = tileSize * 0.4;
+                ctx.beginPath();
+                ctx.arc(0, -2, r, Math.PI, 0, false);
+                ctx.lineTo(r, r);
+                // Wavy bottom
+                ctx.lineTo(r * 0.5, r * 0.6);
+                ctx.lineTo(0, r);
+                ctx.lineTo(-r * 0.5, r * 0.6);
+                ctx.lineTo(-r, r);
+                ctx.closePath();
+                ctx.fill();
+
+                // Eyes
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-r * 0.35, -r * 0.2, r * 0.28, 0, Math.PI * 2);
+                ctx.arc(r * 0.35, -r * 0.2, r * 0.28, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pupils looking in direction
+                ctx.fillStyle = '#1e293b';
+                const eyeOffX = ghost.dirX * 2;
+                const eyeOffY = ghost.dirY * 2;
+                ctx.beginPath();
+                ctx.arc(-r * 0.35 + eyeOffX, -r * 0.2 + eyeOffY, r * 0.14, 0, Math.PI * 2);
+                ctx.arc(r * 0.35 + eyeOffX, -r * 0.2 + eyeOffY, r * 0.14, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            });
+        }
+
+        // Star Drawing Helper
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            let step = Math.PI / spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+        }
+    </script>
+</body>
+</html>
