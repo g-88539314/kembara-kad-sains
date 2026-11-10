@@ -15,7 +15,7 @@
       font-family: 'Quicksand', sans-serif;
       user-select: none;
       -webkit-user-select: none;
-      touch-action: manipulation;
+      touch-action: none;
       background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     }
     .font-game {
@@ -53,7 +53,7 @@
 <body class="min-h-screen flex flex-col items-center justify-between overflow-x-hidden text-slate-800">
 
   <!-- TOP HEADER & GAME STATUS BAR -->
-  <header class="w-full max-w-5xl px-4 pt-3 pb-2 flex flex-wrap items-center justify-between gap-2 z-10">
+  <header class="w-full max-w-6xl px-4 pt-3 pb-2 flex flex-wrap items-center justify-between gap-2 z-10">
     <!-- Game Title Badge -->
     <div class="flex items-center space-x-3 bg-slate-800/80 backdrop-blur border border-amber-500/30 px-4 py-2 rounded-2xl shadow-lg">
       <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center text-white text-xl shadow">
@@ -105,12 +105,12 @@
   </header>
 
   <!-- MAIN CANVAS GAME CONTAINER -->
-  <main class="w-full max-w-5xl px-2 sm:px-4 flex-1 flex flex-col items-center justify-center my-1 relative">
+  <main class="w-full max-w-6xl px-2 sm:px-4 flex-1 flex flex-col items-center justify-center my-1 relative">
     
-    <div class="relative w-full aspect-[16/9] max-h-[600px] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-500/40">
+    <div class="relative w-full aspect-[16/9] max-h-[720px] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-500/40">
       
       <!-- Canvas Layer -->
-      <canvas id="gameCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+      <canvas id="gameCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing" style="touch-action:none; -webkit-user-select:none; user-select:none;"></canvas>
 
       <!-- Instruction Overlay Banner (Hides on drag) -->
       <div id="instructionBanner" class="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur border border-yellow-400/40 text-yellow-200 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs sm:text-sm font-semibold pointer-events-none transition-opacity duration-300">
@@ -127,7 +127,7 @@
   </main>
 
   <!-- FOOTER INSTRUCTIONS & CONTROLS -->
-  <footer class="w-full max-w-5xl px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+  <footer class="w-full max-w-6xl px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
     <div class="flex items-center gap-2">
       <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
       <span>Sasaran disusun rapat untuk memudahkan bidikan murid Tahun 4.</span>
@@ -717,7 +717,7 @@
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       // Grab radius around bird
-      if (dist < bird.radius * 2.5) {
+      if (dist < bird.radius * 4.5) {
         bird.isDragging = true;
         initAudio(); // Initialize audio context on first user touch
         document.getElementById('instructionBanner').classList.add('opacity-0');
@@ -760,14 +760,26 @@
       playSound('launch');
     }
 
-    // Attach Event Listeners
-    canvas.addEventListener('mousedown', onPointerDown);
-    canvas.addEventListener('mousemove', onPointerMove);
-    window.addEventListener('mouseup', onPointerUp);
-
-    canvas.addEventListener('touchstart', onPointerDown, { passive: true });
-    canvas.addEventListener('touchmove', onPointerMove, { passive: true });
-    window.addEventListener('touchend', onPointerUp);
+    // Unified pointer controls: mouse, trackpad and touchscreen.
+    // Capture the pointer so dragging continues even if the pointer leaves the bird.
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+      onPointerDown(e);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (bird.isDragging) e.preventDefault();
+      onPointerMove(e);
+    });
+    canvas.addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      onPointerUp(e);
+      if (canvas.hasPointerCapture && canvas.hasPointerCapture(e.pointerId)) {
+        canvas.releasePointerCapture(e.pointerId);
+      }
+    });
+    canvas.addEventListener('pointercancel', onPointerUp);
 
     /* -------------------------------------------------------------
      * 6. PHYSICS LOOP & COLLISION DETECTION
@@ -1049,7 +1061,6 @@
       setTimeout(() => {
         modal.classList.add('opacity-100');
       }, 10);
-      if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'KKS_GAME_RESULT', hero: 'tinjatron', correct: questionsAnsweredCount, total: 10 }, '*');
     }
 
     /* -------------------------------------------------------------
