@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Angry Birds Sains Tahun 4 - Misi Pernyahtinjaan</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+    }
+    body {
+      min-height: 100svh;
+      box-sizing: border-box;
+      padding: clamp(6px, 1.2vw, 16px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-family: 'Quicksand', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: pan-y;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+    header, main, footer { width: 100%; }
+    main { min-height: 0; }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none !important;
+      -webkit-user-select: none;
+      user-select: none;
+      cursor: grab;
+    }
+    #gameCanvas:active { cursor: grabbing; }
+    @media (max-width: 640px) {
+      body { justify-content: flex-start; }
+      header { padding-top: 4px !important; }
+      footer { font-size: 10px; }
+    }
+    .font-game {
+      font-family: 'Fredoka One', cursive;
+    }
+    /* Custom Scrollbar for Quiz modal */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    /* Pulsing animations */
+    @keyframes pulse-heart {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    .heart-pulse {
+      animation: pulse-heart 1.2s infinite ease-in-out;
+    }
+    .bounce-subtle {
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between overflow-x-hidden text-slate-800">
+
+  <!-- TOP HEADER & GAME STATUS BAR -->
+  <header class="w-full max-w-6xl px-4 pt-3 pb-2 flex flex-wrap items-center justify-between gap-2 z-10">
+    <!-- Game Title Badge -->
+    <div class="flex items-center space-x-3 bg-slate-800/80 backdrop-blur border border-amber-500/30 px-4 py-2 rounded-2xl shadow-lg">
+      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center text-white text-xl shadow">
+        <i class="fa-solid font-game text-yellow-300">🎯</i>
+      </div>
+      <div>
+        <h1 class="font-game text-lg sm:text-xl text-yellow-400 tracking-wide leading-none">MISI PERNYAHTINJAAN</h1>
+        <p class="text-xs text-slate-300 font-semibold">Sains Tahun 4 • Angry Birds Quiz</p>
+      </div>
+    </div>
+
+    <!-- HUD Stats Bar -->
+    <div class="flex items-center gap-3 sm:gap-4 flex-wrap">
+      <!-- Hearts Counter (5 Life Hearts) -->
+      <div class="bg-slate-800/80 backdrop-blur border border-red-500/30 px-3 py-1.5 rounded-2xl flex items-center gap-1 shadow">
+        <span class="text-xs font-bold text-red-300 uppercase tracking-wider mr-1">Nyawa:</span>
+        <div id="heartsContainer" class="flex gap-1 text-lg sm:text-xl">
+          <span class="heart text-red-500 heart-pulse">❤️</span>
+          <span class="heart text-red-500 heart-pulse">❤️</span>
+          <span class="heart text-red-500 heart-pulse">❤️</span>
+          <span class="heart text-red-500 heart-pulse">❤️</span>
+          <span class="heart text-red-500 heart-pulse">❤️</span>
+        </div>
+      </div>
+
+      <!-- Score Counter -->
+      <div class="bg-slate-800/80 backdrop-blur border border-amber-500/30 px-4 py-1.5 rounded-2xl flex items-center gap-2 shadow">
+        <i class="fa-solid fa-trophy text-amber-400 text-lg"></i>
+        <div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 leading-none">Markah</div>
+          <div id="scoreDisplay" class="font-game text-yellow-300 text-lg leading-tight">0</div>
+        </div>
+      </div>
+
+      <!-- Question Progress -->
+      <div class="bg-slate-800/80 backdrop-blur border border-sky-500/30 px-4 py-1.5 rounded-2xl flex items-center gap-2 shadow">
+        <i class="fa-solid fa-circle-question text-sky-400 text-lg"></i>
+        <div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 leading-none">Soalan</div>
+          <div id="progressDisplay" class="font-game text-sky-300 text-lg leading-tight">0 / 10</div>
+        </div>
+      </div>
+
+      <!-- Sound Toggle -->
+      <button id="soundToggleBtn" onclick="toggleAudio()" class="bg-slate-800/80 hover:bg-slate-700 text-yellow-400 border border-slate-600 p-2.5 rounded-2xl shadow transition-transform active:scale-95">
+        <i id="soundIcon" class="fa-solid fa-volume-high text-base"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CANVAS GAME CONTAINER -->
+  <main class="w-full max-w-6xl px-2 sm:px-4 flex-1 flex flex-col items-center justify-center my-1 relative">
+    
+    <div class="relative w-full aspect-[16/9] max-h-[min(78vh,760px)] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-500/40">
+      
+      <!-- Canvas Layer -->
+      <canvas id="gameCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing" style="touch-action:none; -webkit-user-select:none; user-select:none;"></canvas>
+
+      <!-- Instruction Overlay Banner (Hides on drag) -->
+      <div id="instructionBanner" class="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur border border-yellow-400/40 text-yellow-200 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs sm:text-sm font-semibold pointer-events-none transition-opacity duration-300">
+        <i class="fa-solid fa-hand-pointer text-amber-400 animate-bounce"></i>
+        <span>Tarik burung pada slingshot dan lepaskan untuk menembak kotak!</span>
+      </div>
+
+      <!-- Notification Toast -->
+      <div id="toastNotification" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 font-game text-sm sm:text-base px-6 py-2 rounded-2xl shadow-xl transition-all duration-300 opacity-0 transform translate-y-4 pointer-events-none flex items-center gap-2">
+        <i class="fa-solid fa-star"></i>
+        <span id="toastText">Bonus Disambar!</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER INSTRUCTIONS & CONTROLS -->
+  <footer class="w-full max-w-6xl px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+      <span>Sasaran disusun rapat untuk memudahkan bidikan murid Tahun 4.</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="resetGame()" class="hover:text-yellow-400 underline font-semibold flex items-center gap-1 transition-colors">
+        <i class="fa-solid fa-rotate-right"></i> Mula Semula
+      </button>
+      <span>|</span>
+      <span class="text-slate-500">Sains Tahun 4 Unit 2: Pernyahtinjaan</span>
+    </div>
+  </footer>
+
+  <!-- ================= QUIZ MODAL POPUP ================= -->
+  <div id="quizModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-white border-4 border-amber-400 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-red-600 via-amber-500 to-yellow-500 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-xl font-game shadow">
+            🎯
+          </div>
+          <div>
+            <span id="modalQuestionNum" class="text-xs font-bold text-yellow-100 uppercase tracking-wider block">Soalan 1 daripada 10</span>
+            <h2 class="font-game text-lg sm:text-xl text-white leading-tight">Uji Minda Pernyahtinjaan</h2>
+          </div>
+        </div>
+        <div id="questionPointsBadge" class="bg-yellow-300 text-red-900 font-game text-xs px-3 py-1 rounded-full shadow">
+          +100 Mata
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto flex-1 space-y-4">
+        <!-- Question Text -->
+        <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-slate-800 font-bold text-base sm:text-lg shadow-sm leading-snug flex gap-3 items-start">
+          <i class="fa-solid fa-circle-question text-amber-500 text-xl mt-0.5"></i>
+          <span id="quizQuestionText">Apakah maksud pernyahtinjaan?</span>
+        </div>
+
+        <!-- Options Container -->
+        <div id="quizOptionsContainer" class="grid grid-cols-1 gap-3">
+          <!-- Dynamic Buttons will be inserted here -->
+        </div>
+
+        <!-- Explanation / Feedback Box (Hidden initially) -->
+        <div id="feedbackBox" class="hidden p-4 rounded-2xl border text-sm transition-all duration-300 space-y-1">
+          <div id="feedbackTitle" class="font-game text-base flex items-center gap-2"></div>
+          <div id="feedbackText" class="text-slate-700 font-medium"></div>
+        </div>
+      </div>
+
+      <!-- Modal Footer Action -->
+      <div id="modalFooter" class="bg-slate-100 px-6 py-3 border-t border-slate-200 flex justify-end">
+        <button id="nextQuestionBtn" onclick="closeQuizModal()" class="hidden bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-game px-6 py-2.5 rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 text-sm sm:text-base">
+          <span>Teruskan Permainan</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= GAME OVER / VICTORY MODAL ================= -->
+  <div id="resultModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-slate-900 border-4 border-yellow-400 w-full max-w-md rounded-3xl shadow-2xl p-6 text-center text-white space-y-5 relative overflow-hidden">
+      
+      <!-- Decorative background glow -->
+      <div class="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl"></div>
+      <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-red-500/20 rounded-full blur-2xl"></div>
+
+      <!-- Header Icon & Title -->
+      <div class="relative">
+        <div id="resultIcon" class="text-6xl mb-2 bounce-subtle">🏆</div>
+        <h2 id="resultTitle" class="font-game text-2xl sm:text-3xl text-yellow-400 tracking-wide">TAHNIAH!</h2>
+        <p id="resultSubtitle" class="text-xs text-slate-300 mt-1 font-semibold">Anda telah menyelesaikan Cabaran Pernyahtinjaan!</p>
+      </div>
+
+      <!-- Stars Display -->
+      <div id="resultStars" class="flex justify-center gap-3 text-3xl">
+        <i class="fa-solid fa-star text-amber-400 animate-bounce"></i>
+        <i class="fa-solid fa-star text-amber-400 animate-bounce delay-100"></i>
+        <i class="fa-solid fa-star text-amber-400 animate-bounce delay-200"></i>
+      </div>
+
+      <!-- Stats Summary Card -->
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 space-y-3">
+        <div class="flex justify-between items-center text-sm border-b border-slate-700/60 pb-2">
+          <span class="text-slate-400 font-semibold"><i class="fa-solid fa-trophy text-amber-400 mr-1.5"></i>Jumlah Markah:</span>
+          <span id="finalScore" class="font-game text-xl text-yellow-300">0</span>
+        </div>
+        <div class="flex justify-between items-center text-sm border-b border-slate-700/60 pb-2">
+          <span class="text-slate-400 font-semibold"><i class="fa-solid fa-circle-check text-emerald-400 mr-1.5"></i>Soalan Dijawab:</span>
+          <span id="finalQuestions" class="font-bold text-emerald-300">0 / 10</span>
+        </div>
+        <div class="flex justify-between items-center text-sm">
+          <span class="text-slate-400 font-semibold"><i class="fa-solid fa-heart text-red-400 mr-1.5"></i>Baki Nyawa:</span>
+          <span id="finalHearts" class="font-bold text-red-400">5 ❤️</span>
+        </div>
+      </div>
+
+      <!-- Quick Summary Note -->
+      <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-left text-xs text-amber-200 space-y-1">
+        <p class="font-bold text-yellow-300 flex items-center gap-1">
+          <i class="fa-solid fa-lightbulb"></i> Nota Ringkas Sains:
+        </p>
+        <p class="text-slate-300">Pernyahtinjaan menyingkirkan sisa makanan (tinja) melalui dubur. Sentiasa amalkan minum air secukupnya & makan makanan berserat tinggi untuk cegah sembelit!</p>
+      </div>
+
+      <!-- Reset Button -->
+      <button onclick="resetGame()" class="w-full bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-game text-lg py-3 rounded-2xl shadow-xl hover:shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
+        <i class="fa-solid fa-rotate-right"></i>
+        <span>Main Semula</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ================= GAME LOGIC & WEB AUDIO SCRIPT ================= -->
+  <script>
+    /* -------------------------------------------------------------
+     * 1. QUESTION BANK: 10 Sains Tahun 4 (Pernyahtinjaan & Perkumuhan)
+     * ------------------------------------------------------------- */
+    const QUESTION_BANK = [
+      {
+        id: 1,
+        question: "Apakah maksud proses pernyahtinjaan?",
+        options: [
+          "Penyingkiran sisa-sisa makanan yang tidak tercerna melalui dubur.",
+          "Penyingkiran bahan buangan toksik dari ginjal seperti urin.",
+          "Pengeluaran peluh melalui liang pori kulit semasa bersukan.",
+          "Proses menyerap nutrisi makanan ke dalam saluran darah."
+        ],
+        correct: 0,
+        explanation: "Pernyahtinjaan ialah proses penyingkiran sisa makanan tidak tercerna dari usus besar melalui dubur sebagai tinja (najis)."
+      },
+      {
+        id: 2,
+        question: "Organ manakah yang terlibat secara langsung dalam proses pernyahtinjaan?",
+        options: [
+          "Peparu dan Hati",
+          "Usus Besar dan Dubur",
+          "Ginjal dan Salur Kencing",
+          "Perut dan Mulut"
+        ],
+        correct: 1,
+        explanation: "Sisa makanan yang tidak tercerna akan dikumpul di usus besar dan dikeluarkan melalui dubur."
+      },
+      {
+        id: 3,
+        question: "Apakah bahan buangan utama yang dihasilkan melalui proses pernyahtinjaan?",
+        options: [
+          "Urin / Air Kencing",
+          "Peluh",
+          "Tinja / Najis",
+          "Gas Karbon Dioksida"
+        ],
+        correct: 2,
+        explanation: "Bahan buangan pernyahtinjaan ialah tinja (najis). Urin dan peluh adalah sisa perkumuhan."
+      },
+      {
+        id: 4,
+        question: "Apakah masalah kesihatan yang berlaku jika seseorang sukar membuang tinja?",
+        options: [
+          "Sembelit",
+          "Asma",
+          "Deman Denggi",
+          "Cacar Air"
+        ],
+        correct: 0,
+        explanation: "Sembelit berlaku apabila tinja menjadi keras dan sukar dikeluarkan kerana kurang air dan kurang serat."
+      },
+      {
+        id: 5,
+        question: "Jenis makanan manakah yang paling baik untuk melancarkan proses pernyahtinjaan?",
+        options: [
+          "Makanan bergoreng dan berminyak",
+          "Buah-buahan dan sayur-sayuran berciri serat",
+          "Gula-gula dan minuman bergas",
+          "Daging merah yang tebal"
+        ],
+        correct: 1,
+        explanation: "Makanan berserat tinggi seperti buah-buahan, sayur-sayuran, dan bijirin membantu melembutkan tinja."
+      },
+      {
+        id: 6,
+        question: "Apakah perbezaan utama antara perkumuhan dan pernyahtinjaan?",
+        options: [
+          "Perkumuhan menyingkirkan sisa metabolisme badan, manakala pernyahtinjaan menyingkirkan sisa makanan tidak tercerna.",
+          "Perkumuhan berlaku di usus besar, manakala pernyahtinjaan berlaku di ginjal.",
+          "Pernyahtinjaan menghasilkan peluh, manakala perkumuhan menghasilkan tinja.",
+          "Kedua-dua proses adalah sama dan tiada perbezaan."
+        ],
+        correct: 0,
+        explanation: "Perkumuhan menyingkirkan bahan toksik metabolisme (urin, peluh, CO2). Pernyahtinjaan menyingkirkan sisa makanan."
+      },
+      {
+        id: 7,
+        question: "Amalan manakah yang paling berkesan untuk membendung dan mencegah sembelit?",
+        options: [
+          "Tidur sepanjang hari tanpa bergerak",
+          "Minum air secukupnya dan makan makanan berserat tinggi",
+          "Makan makanan manis sahaja",
+          "Mengurangkan pengambilan cecair harian"
+        ],
+        correct: 1,
+        explanation: "Minum sekurang-kurangnya 8 gelas air sehari dan makan serat mencukupi menjadikan proses pernyahtinjaan lancar."
+      },
+      {
+        id: 8,
+        question: "Sisa makanan yang tidak tercerna dikumpulkan di mana sebelum disingkirkan?",
+        options: [
+          "Usus Besar",
+          "Perut (Stomach)",
+          "Pundi Kencing",
+          "Hati"
+        ],
+        correct: 0,
+        explanation: "Selepas nutrien diserap di usus kecil, sisa yang tidak tercerna bergerak ke usus besar untuk dikumpulkan."
+      },
+      {
+        id: 9,
+        question: "Mengapakah kita perlu melakukan pernyahtinjaan secara teratur?",
+        options: [
+          "Untuk mengelakkan bahan toksik berkumpul dan menjejaskan kesihatan badan",
+          "Supaya badan kita menjadi kurus dengan cepat",
+          "Untuk meningkatkan kandungan air dalam perut",
+          "Supaya kita tidak rasa lapar"
+        ],
+        correct: 0,
+        explanation: "Menyimpan tinja terlalu lama boleh menyebabkan toksin diserap semula dan merosakkan usus (cth: risiko kanser usus)."
+      },
+      {
+        id: 10,
+        question: "Apakah nama keadaan apabila najis menjadi terlalu keras dan sukar dikeluarkan?",
+        options: [
+          "Sembelit",
+          "Cirit-birit",
+          "Gout",
+          "Gastrik"
+        ],
+        correct: 0,
+        explanation: "Sembelit ialah keadaan najis keras dan kering akibat kekurangan air dan serat."
+      }
+    ];
+
+    /* -------------------------------------------------------------
+     * 2. AUDIO SYNTHESIZER (Web Audio API - No External Files)
+     * ------------------------------------------------------------- */
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      if (soundEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-base';
+        playSound('correct');
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-base text-red-400';
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'launch') {
+        // Whoosh sound
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(450, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'hit') {
+        // Thump / Impact sound
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } else if (type === 'correct') {
+        // Cheerful Arpeggio (C5 - E5 - G5 - C6)
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.2);
+        });
+      } else if (type === 'wrong') {
+        // Descending Buzz
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'bonus') {
+        // Magical chime
+        const notes = [659.25, 880, 1174.66, 1318.51];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+          gain.gain.setValueAtTime(0.3, now + idx * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.25);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.06);
+          osc.stop(now + idx * 0.06 + 0.25);
+        });
+      } else if (type === 'lose') {
+        // Game Over low tone
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.6);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      }
+    }
+
+    /* -------------------------------------------------------------
+     * 3. GAME STATE & VARIABLES
+     * ------------------------------------------------------------- */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let scaleFactor = 1;
+    let canvasWidth = 960;
+    let canvasHeight = 540;
+
+    // Game Control State
+    let hearts = 5;
+    let score = 0;
+    let questionsAnsweredCount = 0;
+    let isGameOver = false;
+    let activeQuestionIndex = 0;
+    let pendingHitTarget = null;
+    let usedQuestionIndices = [];
+
+    // Slingshot Anchor
+    const slingshot = {
+      x: 160,
+      y: 380,
+      height: 110,
+      width: 18
+    };
+
+    // Bird Physics Object
+    const bird = {
+      x: slingshot.x,
+      y: slingshot.y - 10,
+      radius: 18,
+      vx: 0,
+      vy: 0,
+      isDragging: false,
+      isFlying: false,
+      hasHitSomething: false,
+      trail: []
+    };
+
+    const GRAVITY = 0.35;
+    const MAX_PULL = 90;
+
+    // Boxes / Target Structures & Golden Eggs (Arranged tightly in a clean tower)
+    let targets = [];
+    let particles = [];
+    let floatingTexts = [];
+
+    /* -------------------------------------------------------------
+     * 4. INITIALIZATION & TOWER BUILDER
+     * ------------------------------------------------------------- */
+    function initCanvasSize() {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(canvas.width / canvasWidth, 0, 0, canvas.height / canvasHeight, 0, 0);
+      scaleFactor = canvas.width / canvasWidth;
+    }
+
+    function createTowerTargets() {
+      targets = [];
+
+      // Ground reference height
+      const groundY = 460;
+      const boxW = 54;
+      const boxH = 50;
+
+      // Base X position for tower on the right side
+      const towerBaseX = 640;
+
+      // Stacked neatly in 3 Columns, 4 Rows (12 blocks + Golden Eggs)
+      // We attach question IDs to boxes
+      let qIdx = 0;
+
+      // Layout Grid: 3 Columns
+      const colOffsets = [0, 60, 120];
+      const numRows = 3;
+
+      for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < colOffsets.length; c++) {
+          const bx = towerBaseX + colOffsets[c];
+          const by = groundY - (r + 1) * boxH - r * 4;
+          
+          // Question assignment
+          const qId = (qIdx < QUESTION_BANK.length) ? qIdx : Math.floor(Math.random() * QUESTION_BANK.length);
+          qIdx++;
+
+          // Label text for bricks
+          const labels = ["Usus", "Tinja", "Serat", "Air", "Dubur", "Perut", "Toksin", "Sembelit", "Nutrisi", "Proses"];
+          const label = labels[qId % labels.length];
+
+          // Colors based on row depth
+          const colors = ['#d97706', '#b45309', '#78350f'];
+
+          targets.push({
+            id: `box_${r}_${c}`,
+            x: bx,
+            y: by,
+            w: boxW,
+            h: boxH,
+            color: colors[r % colors.length],
+            label: label,
+            questionIndex: qId,
+            isBonus: false,
+            isHit: false,
+            isCracked: false,
+            hp: 1,
+            rotation: 0,
+            type: 'box'
+          });
+        }
+      }
+
+      // Add 2 Golden Eggs (Bonus Targets) on top of structure
+      targets.push({
+        id: 'bonus_egg_1',
+        x: towerBaseX + 25,
+        y: groundY - (numRows * boxH) - 45,
+        w: 36,
+        h: 44,
+        color: '#fbbf24',
+        label: '⭐',
+        questionIndex: -1,
+        isBonus: true,
+        bonusType: 'HEART', // +1 Heart
+        isHit: false,
+        hp: 1,
+        type: 'egg'
+      });
+
+      targets.push({
+        id: 'bonus_egg_2',
+        x: towerBaseX + 85,
+        y: groundY - (numRows * boxH) - 45,
+        w: 36,
+        h: 44,
+        color: '#f59e0b',
+        label: '🏆',
+        questionIndex: -1,
+        isBonus: true,
+        bonusType: 'SCORE', // +300 PTS
+        isHit: false,
+        hp: 1,
+        type: 'egg'
+      });
+    }
+
+    function resetBird() {
+      bird.x = slingshot.x;
+      bird.y = slingshot.y - 10;
+      bird.vx = 0;
+      bird.vy = 0;
+      bird.isDragging = false;
+      bird.isFlying = false;
+      bird.hasHitSomething = false;
+      bird.trail = [];
+    }
+
+    function resetGame() {
+      resultReportedToParent = false;
+      hearts = 5;
+      score = 0;
+      questionsAnsweredCount = 0;
+      isGameOver = false;
+      usedQuestionIndices = [];
+
+      updateHUD();
+      createTowerTargets();
+      resetBird();
+      particles = [];
+      floatingTexts = [];
+
+      document.getElementById('resultModal').classList.add('hidden');
+      document.getElementById('resultModal').classList.remove('opacity-100');
+      document.getElementById('quizModal').classList.add('hidden');
+    }
+
+    function updateHUD() {
+      document.getElementById('scoreDisplay').innerText = score;
+      document.getElementById('progressDisplay').innerText = `${questionsAnsweredCount} / 10`;
+
+      // Render Hearts
+      const heartsContainer = document.getElementById('heartsContainer');
+      heartsContainer.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const heartSpan = document.createElement('span');
+        if (i < hearts) {
+          heartSpan.className = 'heart text-red-500 heart-pulse';
+          heartSpan.innerText = '❤️';
+        } else {
+          heartSpan.className = 'heart text-slate-600 opacity-40';
+          heartSpan.innerText = '💔';
+        }
+        heartsContainer.appendChild(heartSpan);
+      }
+    }
+
+    /* -------------------------------------------------------------
+     * 5. TOUCH & MOUSE INPUT HANDLERS (SLINGSHOT DRAG & AIM)
+     * ------------------------------------------------------------- */
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+
+      const x = (clientX - rect.left) * (canvasWidth / rect.width);
+      const y = (clientY - rect.top) * (canvasHeight / rect.height);
+      return { x, y };
+    }
+
+    function onPointerDown(e) {
+      if (bird.isFlying || isGameOver) return;
+
+      const coords = getCanvasCoords(e);
+      const dx = coords.x - bird.x;
+      const dy = coords.y - bird.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Grab radius around bird
+      if (dist < bird.radius * 2.8) {
+        bird.isDragging = true;
+        initAudio(); // Initialize audio context on first user touch
+        document.getElementById('instructionBanner').classList.add('opacity-0');
+      }
+    }
+
+    function onPointerMove(e) {
+      if (!bird.isDragging || bird.isFlying) return;
+
+      const coords = getCanvasCoords(e);
+      // Hanya burung yang bergerak. Tapak dan tiang lastik kekal pada koordinat asal.
+      let dx = Math.min(0, coords.x - slingshot.x); // tarik ke kiri sahaja
+      let dy = coords.y - (slingshot.y - 10);
+      let dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Hadkan jarak tarikan supaya burung tidak terkeluar daripada kawasan lastik.
+      if (dist > MAX_PULL) {
+        dx = (dx / dist) * MAX_PULL;
+        dy = (dy / dist) * MAX_PULL;
+      }
+
+      bird.x = slingshot.x + dx;
+      bird.y = (slingshot.y - 10) + dy;
+    }
+
+    function onPointerUp(e) {
+      if (!bird.isDragging || bird.isFlying) return;
+
+      bird.isDragging = false;
+      bird.isFlying = true;
+      bird.hasHitSomething = false;
+
+      // Calculate velocity vector based on stretch distance
+      const dx = slingshot.x - bird.x;
+      const dy = (slingshot.y - 10) - bird.y;
+
+      const launchSpeed = 0.26;
+      bird.vx = dx * launchSpeed;
+      bird.vy = dy * launchSpeed;
+
+      playSound('launch');
+    }
+
+    // Unified pointer controls: mouse, trackpad and touchscreen.
+    // Capture the pointer so dragging continues even if the pointer leaves the bird.
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+      onPointerDown(e);
+      if (bird.isDragging && canvas.setPointerCapture) {
+        canvas.setPointerCapture(e.pointerId);
+      }
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (bird.isDragging) e.preventDefault();
+      onPointerMove(e);
+    });
+    canvas.addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      onPointerUp(e);
+      if (canvas.hasPointerCapture && canvas.hasPointerCapture(e.pointerId)) {
+        canvas.releasePointerCapture(e.pointerId);
+      }
+    });
+    canvas.addEventListener('pointercancel', (e) => {
+      if (bird.isDragging) onPointerUp(e);
+    });
+
+    /* -------------------------------------------------------------
+     * 6. PHYSICS LOOP & COLLISION DETECTION
+     * ------------------------------------------------------------- */
+    function updatePhysics() {
+      if (bird.isFlying) {
+        // Apply velocity & gravity
+        bird.x += bird.vx;
+        bird.y += bird.vy;
+        bird.vy += GRAVITY;
+
+        // Record flight trail
+        if (Math.random() < 0.6) {
+          bird.trail.push({ x: bird.x, y: bird.y, alpha: 1.0 });
+        }
+
+        // Fade trail particles
+        bird.trail.forEach(t => t.alpha -= 0.02);
+        bird.trail = bird.trail.filter(t => t.alpha > 0);
+
+        // Ground Collision Check
+        const groundY = 460;
+        if (bird.y + bird.radius >= groundY) {
+          bird.y = groundY - bird.radius;
+          
+          if (!bird.hasHitSomething) {
+            // Missed! Bird hit ground directly
+            handleMissedShot();
+          } else {
+            // Reset bird after hitting
+            setTimeout(resetBird, 500);
+          }
+          bird.isFlying = false;
+        }
+
+        // Screen boundary miss check (out of right or left)
+        if (bird.x > canvasWidth + 50 || bird.x < -50) {
+          if (!bird.hasHitSomething) {
+            handleMissedShot();
+          } else {
+            resetBird();
+          }
+          bird.isFlying = false;
+        }
+
+        // Collision Check with Box Targets
+        for (let i = 0; i < targets.length; i++) {
+          const t = targets[i];
+          if (t.isHit) continue;
+
+          // AABB vs Circle Collision
+          const closestX = Math.max(t.x, Math.min(bird.x, t.x + t.w));
+          const closestY = Math.max(t.y, Math.min(bird.y, t.y + t.h));
+
+          const distanceX = bird.x - closestX;
+          const distanceY = bird.y - closestY;
+          const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+
+          if (distanceSquared < (bird.radius * bird.radius)) {
+            // HIT DETECTED!
+            bird.hasHitSomething = true;
+            bird.isFlying = false;
+
+            playSound('hit');
+            spawnExplosionParticles(closestX, closestY, t.color, 15);
+
+            // Handle Target Hit Logic
+            handleTargetHit(t);
+            break;
+          }
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15; // Gravity
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+
+      // Update Floating Texts
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y -= 1.2;
+        ft.alpha -= 0.02;
+        if (ft.alpha <= 0) {
+          floatingTexts.splice(i, 1);
+        }
+      }
+    }
+
+    function handleMissedShot() {
+      playSound('wrong');
+      hearts--;
+      updateHUD();
+      showToast("Awas! Burung terlepas / terjatuh (-1 Nyawa) 💔");
+
+      if (hearts <= 0) {
+        triggerGameOver(false);
+      } else {
+        setTimeout(resetBird, 600);
+      }
+    }
+
+    function handleTargetHit(target) {
+      pendingHitTarget = target;
+
+      if (target.isBonus) {
+        // GOLDEN EGG / BONUS TARGET HIT
+        target.isHit = true;
+        playSound('bonus');
+
+        if (target.bonusType === 'HEART') {
+          if (hearts < 5) hearts++;
+          score += 150;
+          showToast("BONUS TELUR EMAS! +1 Nyawa Extra! ❤️");
+          spawnFloatingText(target.x, target.y, "+1 NYAWA!", "#ef4444");
+        } else {
+          score += 300;
+          showToast("BONUS TELUR EMAS! +300 Markah! ⭐");
+          spawnFloatingText(target.x, target.y, "+300 MARKAH!", "#eab308");
+        }
+
+        updateHUD();
+        setTimeout(resetBird, 800);
+      } else {
+        // REGULAR BOX HIT -> TRIGGER QUIZ MODAL
+        openQuizModal(target.questionIndex);
+      }
+    }
+
+    /* -------------------------------------------------------------
+     * 7. QUIZ MODAL HANDLERS
+     * ------------------------------------------------------------- */
+    function openQuizModal(qIndex) {
+      activeQuestionIndex = qIndex;
+      const qData = QUESTION_BANK[qIndex];
+
+      document.getElementById('modalQuestionNum').innerText = `Soalan ${questionsAnsweredCount + 1} daripada 10`;
+      document.getElementById('quizQuestionText').innerText = qData.question;
+
+      const optionsContainer = document.getElementById('quizOptionsContainer');
+      optionsContainer.innerHTML = '';
+
+      const labels = ['A', 'B', 'C', 'D'];
+      qData.options.forEach((optText, i) => {
+        const btn = document.createElement('button');
+        btn.className = `w-full text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-amber-400 hover:bg-amber-50/80 transition-all font-semibold text-sm sm:text-base text-slate-800 flex items-start gap-3 shadow-sm group active:scale-[0.99]`;
+        btn.onclick = () => selectAnswer(i);
+        btn.innerHTML = `
+          <span class="w-7 h-7 rounded-xl bg-slate-100 group-hover:bg-amber-400 group-hover:text-slate-900 font-game text-xs flex items-center justify-center shrink-0 border border-slate-300 transition-colors">
+            ${labels[i]}
+          </span>
+          <span class="mt-0.5 leading-snug">${optText}</span>
+        `;
+        optionsContainer.appendChild(btn);
+      });
+
+      // Reset feedback box & next button
+      document.getElementById('feedbackBox').className = 'hidden p-4 rounded-2xl border text-sm transition-all duration-300 space-y-1';
+      document.getElementById('nextQuestionBtn').classList.add('hidden');
+
+      // Show modal with smooth scale animation
+      const modal = document.getElementById('quizModal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.add('opacity-100');
+        modal.firstElementChild.classList.remove('scale-95');
+        modal.firstElementChild.classList.add('scale-100');
+      }, 10);
+    }
+
+    function selectAnswer(selectedIndex) {
+      const qData = QUESTION_BANK[activeQuestionIndex];
+      const isCorrect = (selectedIndex === qData.correct);
+
+      const optionsContainer = document.getElementById('quizOptionsContainer');
+      const buttons = optionsContainer.querySelectorAll('button');
+
+      // Disable option buttons
+      buttons.forEach((btn, idx) => {
+        btn.onclick = null;
+        if (idx === qData.correct) {
+          btn.className = 'w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-semibold text-slate-900 flex items-start gap-3 shadow';
+        } else if (idx === selectedIndex && !isCorrect) {
+          btn.className = 'w-full text-left p-4 rounded-2xl border-2 border-red-400 bg-red-50 font-semibold text-slate-800 flex items-start gap-3 opacity-80';
+        } else {
+          btn.className = 'w-full text-left p-4 rounded-2xl border border-slate-200 opacity-40 flex items-start gap-3';
+        }
+      });
+
+      const feedbackBox = document.getElementById('feedbackBox');
+      const feedbackTitle = document.getElementById('feedbackTitle');
+      const feedbackText = document.getElementById('feedbackText');
+
+      feedbackBox.classList.remove('hidden');
+
+      if (isCorrect) {
+        playSound('correct');
+        score += 100;
+        questionsAnsweredCount++;
+
+        feedbackBox.className = 'p-4 rounded-2xl border border-emerald-300 bg-emerald-50 text-slate-800 space-y-1';
+        feedbackTitle.className = 'font-game text-base text-emerald-700 flex items-center gap-2';
+        feedbackTitle.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> TAHNIAH! Jawapan Betul (+100 Mata)`;
+        feedbackText.innerText = qData.explanation;
+
+        if (pendingHitTarget) {
+          pendingHitTarget.isHit = true;
+          spawnExplosionParticles(pendingHitTarget.x + pendingHitTarget.w / 2, pendingHitTarget.y + pendingHitTarget.h / 2, '#f59e0b', 25);
+          spawnFloatingText(pendingHitTarget.x, pendingHitTarget.y, "+100 PTS!", "#10b981");
+        }
+      } else {
+        playSound('wrong');
+        feedbackBox.className = 'p-4 rounded-2xl border border-amber-300 bg-amber-50 text-slate-800 space-y-1';
+        feedbackTitle.className = 'font-game text-base text-amber-800 flex items-center gap-2';
+        feedbackTitle.innerHTML = `<i class="fa-solid fa-lightbulb text-amber-600"></i> Kurang Tepat! Info Sains:`;
+        feedbackText.innerText = qData.explanation;
+
+        if (pendingHitTarget) {
+          pendingHitTarget.isCracked = true;
+        }
+      }
+
+      updateHUD();
+      document.getElementById('nextQuestionBtn').classList.remove('hidden');
+    }
+
+    function closeQuizModal() {
+      const modal = document.getElementById('quizModal');
+      modal.classList.remove('opacity-100');
+      modal.firstElementChild.classList.remove('scale-100');
+      modal.firstElementChild.classList.add('scale-95');
+
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        resetBird();
+
+        // Check for Game Completion or Game Over
+        if (questionsAnsweredCount >= 10 || targets.filter(t => !t.isBonus && !t.isHit).length === 0) {
+          triggerGameOver(true);
+        }
+      }, 200);
+    }
+
+    /* -------------------------------------------------------------
+     * 8. GAME OVER / VICTORY MODAL LOGIC
+     * ------------------------------------------------------------- */
+    let resultReportedToParent = false;
+
+    function triggerGameOver(isWin) {
+      if (isGameOver) return;
+      isGameOver = true;
+
+      // Laporkan keputusan hanya apabila permainan benar-benar tamat.
+      // Skor ialah bilangan jawapan betul daripada 10 soalan.
+      if (!resultReportedToParent && window.parent && window.parent !== window) {
+        resultReportedToParent = true;
+        window.parent.postMessage({
+          type: 'KKS_GAME_RESULT',
+          hero: 'tinjatron',
+          correct: Math.max(0, Math.min(10, questionsAnsweredCount)),
+          total: 10
+        }, '*');
+      }
+
+      const modal = document.getElementById('resultModal');
+      const title = document.getElementById('resultTitle');
+      const subtitle = document.getElementById('resultSubtitle');
+      const icon = document.getElementById('resultIcon');
+
+      document.getElementById('finalScore').innerText = score;
+      document.getElementById('finalQuestions').innerText = `${questionsAnsweredCount} / 10`;
+      document.getElementById('finalHearts').innerText = `${hearts} ❤️`;
+
+      if (isWin || score >= 500) {
+        playSound('bonus');
+        title.innerText = "TAHNIAH! SYABAS!";
+        subtitle.innerText = "Anda menguasai Tajuk Pernyahtinjaan Sains Tahun 4!";
+        icon.innerText = "🏆";
+      } else {
+        playSound('lose');
+        title.innerText = "CUBA LAGI!";
+        subtitle.innerText = "Nyawa anda telah habis! Ulangi semula untuk markah tinggi.";
+        icon.innerText = "💔";
+      }
+
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.add('opacity-100');
+      }, 10);
+    }
+
+    /* -------------------------------------------------------------
+     * 9. PARTICLE & VISUAL EFFECTS
+     * ------------------------------------------------------------- */
+    function spawnExplosionParticles(x, y, color, count = 20) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 5 + 3,
+          color: color,
+          alpha: 1.0,
+          decay: Math.random() * 0.03 + 0.02
+        });
+      }
+    }
+
+    function spawnFloatingText(x, y, text, color) {
+      floatingTexts.push({
+        x: x,
+        y: y,
+        text: text,
+        color: color,
+        alpha: 1.0
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastText').innerText = msg;
+      toast.classList.remove('opacity-0', 'translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-4');
+      }, 2500);
+    }
+
+    /* -------------------------------------------------------------
+     * 10. RENDER ENGINE (CANVAS 2D GRAPHICS)
+     * ------------------------------------------------------------- */
+    function drawScene() {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+      // --- Background Sky Gradient ---
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+      skyGrad.addColorStop(0, '#38bdf8');
+      skyGrad.addColorStop(0.7, '#bae6fd');
+      skyGrad.addColorStop(1, '#e0f2fe');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // --- Decorative Clouds & Sun ---
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.beginPath();
+      ctx.arc(180, 80, 28, 0, Math.PI * 2);
+      ctx.arc(210, 70, 38, 0, Math.PI * 2);
+      ctx.arc(245, 80, 28, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(720, 100, 25, 0, Math.PI * 2);
+      ctx.arc(745, 90, 34, 0, Math.PI * 2);
+      ctx.arc(775, 100, 25, 0, Math.PI * 2);
+      ctx.fill();
+
+      // --- Distant Hills ---
+      ctx.fillStyle = '#86efac';
+      ctx.beginPath();
+      ctx.arc(300, 520, 280, Math.PI, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(750, 540, 320, Math.PI, Math.PI * 2);
+      ctx.fill();
+
+      // --- Ground / Grass Layer ---
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(0, 460, canvasWidth, 80);
+      // Grass Blade details
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(0, 460, canvasWidth, 10);
+
+      // --- Trajectory Line (Shown when dragging bird) ---
+      if (bird.isDragging) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 6]);
+
+        const dx = slingshot.x - bird.x;
+        const dy = (slingshot.y - 10) - bird.y;
+        const launchSpeed = 0.26;
+        let simX = bird.x;
+        let simY = bird.y;
+        let simVx = dx * launchSpeed;
+        let simVy = dy * launchSpeed;
+
+        ctx.beginPath();
+        ctx.moveTo(simX, simY);
+
+        for (let t = 0; t < 35; t++) {
+          simX += simVx;
+          simY += simVy;
+          simVy += GRAVITY;
+          ctx.lineTo(simX, simY);
+          if (simY >= 460) break;
+        }
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset line dash
+      }
+
+      // --- Flight Trail ---
+      bird.trail.forEach(t => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${t.alpha * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // --- Slingshot Back Rubber Band & Post ---
+      const anchorY = slingshot.y - 10;
+      if (bird.isDragging) {
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(slingshot.x - 12, anchorY);
+        ctx.lineTo(bird.x, bird.y);
+        ctx.stroke();
+      }
+
+      // Wooden Slingshot Fork
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(slingshot.x - 6, slingshot.y, 12, slingshot.height);
+      ctx.beginPath();
+      ctx.moveTo(slingshot.x - 6, slingshot.y);
+      ctx.lineTo(slingshot.x - 16, slingshot.y - 25);
+      ctx.lineTo(slingshot.x - 6, slingshot.y - 25);
+      ctx.lineTo(slingshot.x + 6, slingshot.y - 25);
+      ctx.lineTo(slingshot.x + 16, slingshot.y - 25);
+      ctx.lineTo(slingshot.x + 6, slingshot.y);
+      ctx.fill();
+
+      // --- Draw Target Boxes & Golden Eggs ---
+      targets.forEach(t => {
+        if (t.isHit) return;
+
+        ctx.save();
+        ctx.translate(t.x + t.w / 2, t.y + t.h / 2);
+
+        if (t.type === 'egg') {
+          // Golden Egg Bonus Graphic
+          ctx.fillStyle = t.color;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, t.w / 2, t.h / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          // Egg Highlight & Symbol
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.ellipse(-5, -8, 4, 7, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#78350f';
+          ctx.font = 'bold 16px "Fredoka One", cursive';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(t.label, 0, 4);
+
+        } else {
+          // Brick Box Graphic
+          ctx.fillStyle = t.color;
+          ctx.fillRect(-t.w / 2, -t.h / 2, t.w, t.h);
+
+          // Wood Grain / Brick Border
+          ctx.strokeStyle = '#451a03';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(-t.w / 2, -t.h / 2, t.w, t.h);
+
+          // Inner Bevel Highlight
+          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-t.w / 2 + 3, -t.h / 2 + 3, t.w - 6, t.h - 6);
+
+          // Cracked Texture overlay if answered wrong previously
+          if (t.isCracked) {
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-t.w / 4, -t.h / 3);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(-t.w / 6, t.h / 3);
+            ctx.stroke();
+          }
+
+          // Label Text inside Brick
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 11px "Quicksand", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(t.label, 0, 0);
+        }
+
+        ctx.restore();
+      });
+
+      // --- Slingshot Front Rubber Band ---
+      if (bird.isDragging) {
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(slingshot.x + 12, anchorY);
+        ctx.lineTo(bird.x, bird.y);
+        ctx.stroke();
+      }
+
+      // --- Draw Angry Red Bird ---
+      ctx.save();
+      ctx.translate(bird.x, bird.y);
+
+      // Red Bird Body
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(0, 0, bird.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#991b1b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // White Belly
+      ctx.fillStyle = '#fef2f2';
+      ctx.beginPath();
+      ctx.arc(2, 6, bird.radius * 0.6, 0, Math.PI * 0.9);
+      ctx.fill();
+
+      // Feather Hair Knot Top
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.ellipse(-4, -bird.radius - 3, 4, 8, -0.4, 0, Math.PI * 2);
+      ctx.ellipse(3, -bird.radius - 4, 4, 9, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Angry Eyebrows
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.moveTo(-10, -8);
+      ctx.lineTo(4, -3);
+      ctx.lineTo(4, -7);
+      ctx.lineTo(-10, -11);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(12, -8);
+      ctx.lineTo(-2, -3);
+      ctx.lineTo(-2, -7);
+      ctx.lineTo(12, -11);
+      ctx.fill();
+
+      // Eyes
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-4, -2, 4.5, 0, Math.PI * 2);
+      ctx.arc(5, -2, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(-2.5, -2, 2, 0, Math.PI * 2);
+      ctx.arc(3.5, -2, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Beak
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.moveTo(-4, 2);
+      ctx.lineTo(12, 5);
+      ctx.lineTo(-4, 9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.restore();
+
+      // --- Render Particles ---
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      });
+
+      // --- Render Floating Texts ---
+      floatingTexts.forEach(ft => {
+        ctx.fillStyle = ft.color;
+        ctx.globalAlpha = ft.alpha;
+        ctx.font = 'bold 16px "Fredoka One", cursive';
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.globalAlpha = 1.0;
+      });
+    }
+
+    /* -------------------------------------------------------------
+     * 11. MAIN ANIMATION LOOP
+     * ------------------------------------------------------------- */
+    function gameLoop() {
+      updatePhysics();
+      drawScene();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Window Load Initialization
+    window.onload = function () {
+      initCanvasSize();
+      createTowerTargets();
+      updateHUD();
+      gameLoop();
+
+      // Handle Resize
+      window.addEventListener('resize', () => {
+        initCanvasSize();
+      });
+    };
+  </script>
+</body>
+</html>
