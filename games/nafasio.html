@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cabaran Memancing: Konsep Pernafasan</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka & Quicksand -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Fredoka', 'Quicksand', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Animasi Ombak Laut */
+    .wave {
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,50 C650,140 900,10 1200,40 L1200,120 L0,120 Z" fill="%233b82f6" opacity="0.4"></path></svg>');
+      background-size: 1200px 100%;
+      animation: waveMove 10s linear infinite;
+    }
+    .wave2 {
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C200,60 400,-20 600,40 C800,100 1000,10 1200,30 L1200,120 L0,120 Z" fill="%231d4ed8" opacity="0.6"></path></svg>');
+      background-size: 1200px 100%;
+      animation: waveMove 6s linear infinite reverse;
+    }
+
+    @keyframes waveMove {
+      0% { background-position-x: 0; }
+      100% { background-position-x: 1200px; }
+    }
+
+    /* Gelembung Air Background */
+    .bubble {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      bottom: -50px;
+      animation: floatUp linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateY(0) scale(0.8);
+        opacity: 0.2;
+      }
+      50% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(-105vh) scale(1.3);
+        opacity: 0;
+      }
+    }
+
+    /* Animasi Goyangan Sampan Nelayan */
+    .boat-sway {
+      animation: boatSway 3.5s ease-in-out infinite alternate;
+      transform-origin: bottom center;
+    }
+
+    @keyframes boatSway {
+      0% { transform: rotate(-2.5deg) translateY(0px); }
+      100% { transform: rotate(2.5deg) translateY(-4px); }
+    }
+
+    /* Floating Effect untuk Ikan */
+    .fish-swim {
+      transition: transform 0.2s ease-out;
+    }
+
+    /* Custom Glassmorphism Box */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-sky-400 via-blue-700 to-slate-950 text-white min-h-screen h-screen overflow-hidden relative">
+
+  <!-- SVG Fishing Line Layer -->
+  <svg id="fishingSvg" class="absolute inset-0 w-full h-full pointer-events-none z-20">
+    <!-- Line -->
+    <line id="fishingLine" x1="0" y1="0" x2="0" y2="0" stroke="#fef08a" stroke-width="3" stroke-dasharray="6 3" opacity="0"/>
+    <!-- Hook -->
+    <g id="hookGroup" transform="translate(-100, -100)" opacity="0">
+      <path d="M 0,0 L 0,16 A 7,7 0 0,0 14,16 L 14,10 L 10,12" stroke="#e2e8f0" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <circle cx="0" cy="0" r="3" fill="#cbd5e1"/>
+    </g>
+  </svg>
+
+  <!-- Container Utama -->
+  <div class="relative w-full h-full flex flex-col justify-between overflow-hidden">
+    
+    <!-- BAR ATAS: Papan Skor & Kemajuan -->
+    <header class="relative z-30 px-4 pt-3 flex justify-between items-center max-w-5xl mx-auto w-full">
+      <!-- Tajuk & Progress -->
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-900/80 backdrop-blur border border-blue-400/40 px-3 py-1.5 rounded-2xl flex items-center gap-2 shadow-lg">
+          <i class="fa-solid fa-fish text-yellow-300 text-lg"></i>
+          <span class="text-xs sm:text-sm font-semibold tracking-wide" id="progressText">Soalan 1 / 10</span>
+        </div>
+      </div>
+
+      <!-- Skor & Kawalan Audio -->
+      <div class="flex items-center gap-3">
+        <!-- Badge Skor -->
+        <div class="bg-amber-500/90 border border-amber-300/60 px-4 py-1.5 rounded-2xl flex items-center gap-2 shadow-lg">
+          <i class="fa-solid fa-star text-yellow-100 text-base animate-bounce"></i>
+          <span class="text-xs sm:text-sm font-bold text-white">Mata: <span id="scoreText">0</span></span>
+        </div>
+        
+        <!-- Butang Audio -->
+        <button id="soundToggleBtn" onclick="toggleSound()" class="w-10 h-10 rounded-full bg-blue-800/80 border border-blue-300/40 flex items-center justify-center hover:bg-blue-700 transition active:scale-95 shadow-md">
+          <i id="soundIcon" class="fa-solid fa-volume-high text-yellow-300 text-sm"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ZON ATAS: Permukaan Air & Sampan Nelayan -->
+    <div class="relative w-full h-28 sm:h-32 z-20">
+      <!-- Ombak Air -->
+      <div class="wave absolute top-0 left-0 w-full h-16"></div>
+      <div class="wave2 absolute top-2 left-0 w-full h-16"></div>
+
+      <!-- Sampan & Nelayan -->
+      <div id="boatContainer" class="absolute top-3 left-1/2 -translate-x-1/2 boat-sway flex flex-col items-center">
+        <!-- Visual Sampan Kayu SVG -->
+        <svg class="w-36 h-20 sm:w-44 sm:h-24 drop-shadow-2xl" viewBox="0 0 200 120" fill="none">
+          <!-- Batang Kail -->
+          <line id="rodTipLine" x1="140" y1="50" x2="185" y2="15" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="185" cy="15" r="3" fill="#fef08a" id="rodTipPoint"/>
+
+          <!-- Nelayan -->
+          <!-- Topi -->
+          <path d="M 105 38 L 145 38 L 125 22 Z" fill="#f59e0b"/>
+          <ellipse cx="125" cy="38" rx="24" ry="4" fill="#d97706"/>
+          <!-- Kepala -->
+          <circle cx="125" cy="44" r="9" fill="#fde047"/>
+          <!-- Badan -->
+          <path d="M 115 53 Q 125 50 135 53 L 138 72 L 112 72 Z" fill="#0284c7"/>
+
+          <!-- Sampan Kayu -->
+          <path d="M 20 70 L 180 70 Q 160 105 130 105 L 70 105 Q 40 105 20 70 Z" fill="#854d0e" stroke="#a16207" stroke-width="3"/>
+          <path d="M 25 74 L 175 74" stroke="#ca8a04" stroke-width="2"/>
+          <!-- Jalur Sampan -->
+          <path d="M 45 88 L 155 88" stroke="#713f12" stroke-dasharray="6 4" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ZON PERTENGAHAN: PAPARAN SOALAN UTAMA (TENGAH SKRIN) -->
+    <!-- Kotak Soalan Dibuat Kecil, Padat & Jelas -->
+    <main class="relative z-20 flex-1 flex items-center justify-center px-4 py-2 pointer-events-none">
+      <div id="questionCard" class="glass-card w-full max-w-[380px] sm:max-w-[420px] rounded-2xl p-4 sm:p-5 text-center shadow-2xl transition-all duration-300 pointer-events-auto transform scale-100">
+        <!-- Label Bab/Topik -->
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/30 border border-sky-300/40 text-sky-200 text-xs font-semibold mb-2">
+          <i class="fa-solid fa-lungs text-sky-300"></i> Sains Pernafasan
+        </div>
+
+        <!-- Teks Soalan Utama -->
+        <h2 id="questionText" class="text-base sm:text-lg font-bold text-white leading-snug drop-shadow-md min-h-[50px] flex items-center justify-center">
+          Memuatkan soalan...
+        </h2>
+
+        <!-- Arahan Ringkas -->
+        <p class="text-[11px] sm:text-xs text-cyan-200/80 mt-1 flex items-center justify-center gap-1">
+          <i class="fa-solid fa-hand-pointer animate-pulse"></i> Klik pada ikan yang membawa jawapan betul!
+        </p>
+      </div>
+    </main>
+
+    <!-- ZON IKAN: DUA ZON BERASINGAN (ATAS DAN BAWAH KOTAK SOALAN) -->
+    <!-- Container untuk Ikan (Absolute positioning di seluruh lautan) -->
+    <div id="fishContainer" class="absolute inset-0 z-10 overflow-hidden pointer-events-auto">
+      <!-- Ikan-ikan dipaparkan secara dinamik melalui JS -->
+    </div>
+
+    <!-- FOOTER: Dasar Laut Decorative -->
+    <footer class="relative z-0 h-12 w-full bg-gradient-to-t from-slate-950 to-transparent pointer-events-none flex items-end justify-between px-6 pb-2">
+      <!-- Rumpai Laut Left -->
+      <div class="flex gap-2 opacity-60">
+        <svg class="w-8 h-12 text-emerald-600 animate-pulse" viewBox="0 0 40 80" fill="currentColor">
+          <path d="M 10 80 Q 25 50 10 20 Q 0 0 10 0 Q 20 20 30 50 Q 15 80 20 80 Z"/>
+        </svg>
+        <svg class="w-6 h-10 text-teal-500 animate-pulse" viewBox="0 0 40 80" fill="currentColor" style="animation-delay: 1s;">
+          <path d="M 20 80 Q 5 50 20 20 Q 30 0 20 0 Q 10 20 0 50 Q 15 80 10 80 Z"/>
+        </svg>
+      </div>
+      <!-- Rumpai Laut Right -->
+      <div class="flex gap-2 opacity-60">
+        <svg class="w-7 h-11 text-emerald-500 animate-pulse" viewBox="0 0 40 80" fill="currentColor" style="animation-delay: 0.5s;">
+          <path d="M 10 80 Q 25 50 10 20 Q 0 0 10 0 Q 20 20 30 50 Q 15 80 20 80 Z"/>
+        </svg>
+      </div>
+    </footer>
+  </div>
+
+  <!-- POPUP FEEDBACK JAWAPAN (BETUL / SALAH) -->
+  <div id="feedbackModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+    <div id="feedbackBox" class="transform scale-75 transition-transform duration-300 bg-slate-900 border-2 border-white/20 rounded-3xl p-6 text-center max-w-sm w-full shadow-2xl">
+      <div id="feedbackIcon" class="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-3 shadow-lg">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <h3 id="feedbackTitle" class="text-2xl font-bold mb-1">Tahniah!</h3>
+      <p id="feedbackMsg" class="text-sm text-slate-300 mb-5">Jawapan anda tepat sekali.</p>
+      <button onclick="closeFeedback()" class="w-full py-3 px-6 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-lg active:scale-95 transition">
+        Teruskan <i class="fa-solid fa-arrow-right ml-1"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL SKRIN KEMENANGAN / KEPUTUSAN AKHIR -->
+  <div id="victoryModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-950/85 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
+    <div id="victoryCard" class="transform scale-90 transition-transform duration-300 glass-card border-2 border-yellow-400/50 rounded-3xl p-6 sm:p-8 text-center max-w-md w-full shadow-2xl relative overflow-hidden">
+      <!-- Glow Effect -->
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-yellow-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Icon Trofi -->
+      <div class="w-24 h-24 mx-auto mb-3 bg-gradient-to-tr from-amber-500 to-yellow-300 rounded-full flex items-center justify-center shadow-xl border-4 border-yellow-200">
+        <i class="fa-solid fa-trophy text-4xl text-amber-950"></i>
+      </div>
+
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-yellow-300 mb-1 drop-shadow">Misi Memancing Selesai!</h2>
+      <p class="text-xs sm:text-sm text-slate-300 mb-4">Berikut adalah pencapaian anda dalam konsep pernafasan sains:</p>
+
+      <!-- Papan Markah Akhir -->
+      <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 mb-5 grid grid-cols-2 gap-3 text-center">
+        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
+          <span class="text-xs text-slate-400 block mb-1">Jumlah Mata</span>
+          <span id="finalScore" class="text-2xl font-black text-amber-400">0</span>
+        </div>
+        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
+          <span class="text-xs text-slate-400 block mb-1">Ketepatan</span>
+          <span id="finalAccuracy" class="text-2xl font-black text-emerald-400">0%</span>
+        </div>
+      </div>
+
+      <!-- Gelaran / Gred -->
+      <div class="mb-6">
+        <span class="text-xs text-slate-400 block mb-1">Gelaran Nelayan Sains Anda:</span>
+        <div id="fishermanRank" class="inline-block bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-bold px-4 py-1.5 rounded-full text-sm shadow-md">
+          Jaguh Memancing Laut
+        </div>
+      </div>
+
+      <!-- Butang Main Semula -->
+      <button onclick="restartGame()" class="w-full py-3.5 px-6 rounded-2xl font-bold text-slate-950 bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 hover:brightness-110 shadow-xl active:scale-95 transition flex items-center justify-center gap-2 text-base">
+        <i class="fa-solid fa-rotate-right text-lg"></i> Main Semula
+      </button>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT PERMAINAN -->
+  <script>
+    /* ==========================================
+       1. DATA SOALAN SAINS (KONSEP PERNAFASAN)
+       ========================================== */
+    const rawQuestions = [
+      {
+        q: "1. Apakah gas yang disedut semasa menarik nafas?",
+        options: ["Oksigen", "Karbon dioksida", "Nitrogen", "Hidrogen"],
+        answer: 0
+      },
+      {
+        q: "2. Apakah gas utama yang dihembus keluar semasa bernafas?",
+        options: ["Karbon dioksida", "Oksigen", "Helium", "Wap Air Sahaja"],
+        answer: 0
+      },
+      {
+        q: "3. Apakah organ utama bagi pernafasan manusia?",
+        options: ["Paru-paru", "Jantung", "Hati", "Buah pinggang"],
+        answer: 0
+      },
+      {
+        q: "4. Bagaimanakah pergerakan dada semasa menarik nafas?",
+        options: ["Menaik dan membesar", "Menurun dan mengecil", "Kuncup ke dalam", "Tiada sebarang pergerakan"],
+        answer: 0
+      },
+      {
+        q: "5. Apakah organ pernafasan utama bagi ikan?",
+        options: ["Insang", "Paru-paru", "Spirakel", "Kulit lembap"],
+        answer: 0
+      },
+      {
+        q: "6. Di manakah tempat pertukaran gas berlaku di paru-paru?",
+        options: ["Alveolus", "Bronkus", "Trakea", "Diafragma"],
+        answer: 0
+      },
+      {
+        q: "7. Lengkapkan laluan udara: Hidung → Trakea → ___?",
+        options: ["Paru-paru", "Jantung", "Perut", "Mulut"],
+        answer: 0
+      },
+      {
+        q: "8. Apakah otot utama di bawah paru-paru yang membantu bernafas?",
+        options: ["Diafragma", "Bisep", "Kardiak", "Interkostal"],
+        answer: 0
+      },
+      {
+        q: "9. Kadar pernafasan manusia akan meningkat apabila?",
+        options: ["Bersenam / Berlari", "Tidur nyenyak", "Duduk santai", "Membaca buku"],
+        answer: 0
+      },
+      {
+        q: "10. Serangga bernafas menggunakan struktur khas iaitu?",
+        options: ["Spirakel", "Insang", "Paru-paru", "Kulit luar"],
+        answer: 0
+      }
+    ];
+
+    // Warna SVG Ikan yang Ceria
+    const fishColors = [
+      { body: '#f97316', detail: '#fdba74' }, // Orange
+      { body: '#06b6d4', detail: '#67e8f9' }, // Cyan
+      { body: '#ec4899', detail: '#fbcfe8' }, // Pink
+      { body: '#84cc16', detail: '#bef264' }  // Lime
+    ];
+
+    /* ==========================================
+       2. NEGERI PERMAINAN (GAME STATE)
+       ========================================== */
+    let currentQuestions = [];
+    let currentQIndex = 0;
+    let score = 0;
+    let correctCount = 0;
+    let isFishing = false; // Elak multiple click semasa joran bergerak
+    let soundEnabled = true;
+    let fishAnimFrameId = null;
+    let activeFishList = [];
+
+    // Web Audio API Context
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    /* ==========================================
+       3. SYSTEM SOUND EFFECTS (WEB AUDIO API)
+       ========================================== */
+    function playSound(type) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'cast') {
+        // Bunyi baling tali kail (frequency sweep down)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.25);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === 'correct') {
+        // Bunyi kejayaan / jawapan betul (Arpeggio gembira C5 -> E5 -> G5 -> C6)
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.3, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.2);
+        });
+      } else if (type === 'wrong') {
+        // Bunyi jawapan salah (Low buzz down)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.linearRampToValueAtTime(90, now + 0.35);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } else if (type === 'splash') {
+        // Bunyi percikan air
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const soundIcon = document.getElementById('soundIcon');
+      const soundBtn = document.getElementById('soundToggleBtn');
+      if (soundEnabled) {
+        soundIcon.className = "fa-solid fa-volume-high text-yellow-300 text-sm";
+        soundBtn.classList.remove('opacity-50');
+      } else {
+        soundIcon.className = "fa-solid fa-volume-xmark text-slate-400 text-sm";
+        soundBtn.classList.add('opacity-50');
+      }
+    }
+
+    /* ==========================================
+       4. INISIALISASI & PERMUTARAN SOALAN
+       ========================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      createBubbles();
+      startGame();
+    });
+
+    function createBubbles() {
+      const body = document.body;
+      for (let i = 0; i < 14; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const size = Math.random() * 18 + 8;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${Math.random() * 100}%`;
+        bubble.style.animationDuration = `${Math.random() * 8 + 6}s`;
+        bubble.style.animationDelay = `${Math.random() * 5}s`;
+        body.appendChild(bubble);
+      }
+    }
+
+    function shuffleArray(arr) {
+      const array = [...arr];
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startGame() {
+      // Mengacak urutan soalan
+      currentQuestions = rawQuestions.map(q => {
+        // Acak pilihan jawapan dan simpan indeks betul yang baru
+        const optionsWithMeta = q.options.map((opt, idx) => ({
+          text: opt,
+          isCorrect: idx === q.answer
+        }));
+        const shuffledOpts = shuffleArray(optionsWithMeta);
+        return {
+          q: q.q,
+          options: shuffledOpts
+        };
+      });
+
+      currentQIndex = 0;
+      score = 0;
+      correctCount = 0;
+      isFishing = false;
+
+      document.getElementById('scoreText').innerText = score;
+      document.getElementById('victoryModal').classList.add('opacity-0', 'pointer-events-none');
+      document.getElementById('victoryCard').classList.add('scale-90');
+
+      loadQuestion(currentQIndex);
+    }
+
+    /* ==========================================
+       5. MEMUATKAN SOALAN & IKAN BERENANG
+       ========================================== */
+    function loadQuestion(index) {
+      if (index >= currentQuestions.length) {
+        showVictoryScreen();
+        return;
+      }
+
+      isFishing = false;
+      document.getElementById('progressText').innerText = `Soalan ${index + 1} / ${currentQuestions.length}`;
+      
+      const qData = currentQuestions[index];
+      const qTextElem = document.getElementById('questionText');
+      
+      // Animasi kemunculan soalan
+      qTextElem.style.opacity = '0';
+      setTimeout(() => {
+        qTextElem.innerText = qData.q;
+        qTextElem.style.opacity = '1';
+      }, 150);
+
+      // Padamkan ikan terdahulu
+      if (fishAnimFrameId) cancelAnimationFrame(fishAnimFrameId);
+      const container = document.getElementById('fishContainer');
+      container.innerHTML = '';
+      activeFishList = [];
+
+      // DUA ZON UTAMA IKAN SUPAYA TIDAK BERTINDIH DENGAN KOTAK SOALAN DI TENGAH:
+      // Zon Atas:  20% hingga 38% tinggi skrin (di atas kotak soalan)
+      // Zon Bahaw: 64% hingga 84% tinggi skrin (di bawah kotak soalan)
+      const zones = [
+        { minTop: 20, maxTop: 34 }, // Fish 1 (Zon Atas)
+        { minTop: 35, maxTop: 42 }, // Fish 2 (Zon Atas)
+        { minTop: 64, maxTop: 73 }, // Fish 3 (Zon Dasar)
+        { minTop: 74, maxTop: 84 }  // Fish 4 (Zon Dasar)
+      ];
+
+      qData.options.forEach((optObj, i) => {
+        const fishEl = document.createElement('div');
+        fishEl.className = 'absolute cursor-pointer fish-swim flex flex-col items-center group select-none z-10';
+        fishEl.dataset.isCorrect = optObj.isCorrect;
+        fishEl.dataset.index = i;
+
+        // Posisi Awal
+        const zone = zones[i % zones.length];
+        const topPos = Math.random() * (zone.maxTop - zone.minTop) + zone.minTop;
+        const dir = Math.random() > 0.5 ? 1 : -1; // 1: Kiri ke Kanan, -1: Kanan ke Kiri
+        const speed = (Math.random() * 0.8 + 0.6) * dir;
+        const startX = Math.random() * (window.innerWidth - 180);
+
+        fishEl.style.top = `${topPos}%`;
+        fishEl.style.left = `${startX}px`;
+
+        const color = fishColors[i % fishColors.length];
+
+        // SVG Ikan yang Comel + Label Jawapan Jelas
+        fishEl.innerHTML = `
+          <!-- Visual Ikan SVG -->
+          <div class="fish-graphic transition-transform duration-300 transform group-hover:scale-110 drop-shadow-xl" style="transform: scaleX(${dir > 0 ? 1 : -1});">
+            <svg class="w-20 h-12 sm:w-24 sm:h-14" viewBox="0 0 100 60" fill="none">
+              <!-- Ekor -->
+              <path d="M 20 30 L 2 10 Q 0 30 2 50 Z" fill="${color.body}"/>
+              <!-- Badan -->
+              <ellipse cx="50" cy="30" rx="35" ry="22" fill="${color.body}"/>
+              <path d="M 30 12 Q 55 20 70 30 Q 55 40 30 48 Z" fill="${color.detail}" opacity="0.5"/>
+              <!-- Sirip Atas -->
+              <path d="M 40 10 Q 55 0 65 10 Z" fill="${color.detail}"/>
+              <!-- Mata -->
+              <circle cx="72" cy="22" r="5" fill="white"/>
+              <circle cx="74" cy="22" r="2.5" fill="black"/>
+              <!-- Mulut -->
+              <path d="M 83 30 Q 78 35 82 38" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Kad Teks Jawapan di Bawah Ikan -->
+          <div class="mt-1 px-3 py-1 rounded-xl bg-slate-900/90 border border-cyan-400/60 text-cyan-100 text-xs sm:text-sm font-bold shadow-lg whitespace-nowrap backdrop-blur-md max-w-[180px] text-center overflow-hidden text-ellipsis group-hover:border-yellow-400 group-hover:text-yellow-300 transition-colors">
+            ${optObj.text}
+          </div>
+        `;
+
+        // Event Listener Tekan/Klik pada Ikan
+        fishEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!isFishing) {
+            catchFish(fishEl, optObj);
+          }
+        });
+
+        container.appendChild(fishEl);
+
+        activeFishList.push({
+          element: fishEl,
+          x: startX,
+          speed: speed,
+          dir: dir,
+          topPercent: topPos
+        });
+      });
+
+      // Mulakan Animasi Pergerakan Ikan
+      animateFish();
+    }
+
+    /* Animasi Pergerakan Horizontal Ikan di Laut */
+    function animateFish() {
+      const screenWidth = window.innerWidth;
+
+      activeFishList.forEach(fish => {
+        if (fish.isCaught) return; // Abai jika sedang ditarik kail
+
+        fish.x += fish.speed;
+
+        // Pusing balik apabila mencecah tepi skrin
+        if (fish.x > screenWidth - 100 && fish.speed > 0) {
+          fish.speed = -Math.abs(fish.speed);
+          fish.element.querySelector('.fish-graphic').style.transform = 'scaleX(-1)';
+        } else if (fish.x < 10 && fish.speed < 0) {
+          fish.speed = Math.abs(fish.speed);
+          fish.element.querySelector('.fish-graphic').style.transform = 'scaleX(1)';
+        }
+
+        fish.element.style.left = `${fish.x}px`;
+      });
+
+      fishAnimFrameId = requestAnimationFrame(animateFish);
+    }
+
+    /* ==========================================
+       6. MEKANIK MEMANCING (FISHING ANIMATION)
+       ========================================== */
+    function catchFish(fishEl, optObj) {
+      isFishing = true;
+      playSound('cast');
+
+      // Tanda ikan ini telah ditangkap
+      const fishObj = activeFishList.find(f => f.element === fishEl);
+      if (fishObj) fishObj.isCaught = true;
+
+      // Dapatkan Koordinat Hujung Joran (Rod Tip)
+      const rodTip = document.getElementById('rodTipPoint');
+      const rodRect = rodTip.getBoundingClientRect();
+      const startX = rodRect.left + rodRect.width / 2;
+      const startY = rodRect.top + rodRect.height / 2;
+
+      // Dapatkan Koordinat Mulut Ikan
+      const fishRect = fishEl.getBoundingClientRect();
+      const targetX = fishRect.left + fishRect.width / 2;
+      const targetY = fishRect.top + 20; // Atas sedikit dari tengah ikan
+
+      // Tunjukkan SVG Tali & Kail
+      const line = document.getElementById('fishingLine');
+      const hookGroup = document.getElementById('hookGroup');
+
+      line.setAttribute('x1', startX);
+      line.setAttribute('y1', startY);
+      line.setAttribute('x2', startX);
+      line.setAttribute('y2', startY);
+      line.setAttribute('opacity', '1');
+
+      hookGroup.setAttribute('transform', `translate(${startX - 7}, ${startY})`);
+      hookGroup.setAttribute('opacity', '1');
+
+      // 1. TURUNKAN KAIL KE IKAN
+      const dropDuration = 350; // ms
+      const startTime = performance.now();
+
+      function animateHookDrop(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / dropDuration, 1);
+        // Ease Out Quad
+        const easeProgress = 1 - (1 - progress) * (1 - progress);
+
+        const currentX = startX + (targetX - startX) * easeProgress;
+        const currentY = startY + (targetY - startY) * easeProgress;
+
+        line.setAttribute('x2', currentX);
+        line.setAttribute('y2', currentY);
+        hookGroup.setAttribute('transform', `translate(${currentX - 7}, ${currentY})`);
+
+        if (progress < 1) {
+          requestAnimationFrame(animateHookDrop);
+        } else {
+          // Kail sampai ke ikan -> Bunyi percikan & Tarik naik!
+          playSound('splash');
+          reelUpFish(fishEl, optObj, startX, startY, targetX, targetY);
+        }
+      }
+
+      requestAnimationFrame(animateHookDrop);
+    }
+
+    /* Tarik Ikan Naik Ke Sampan */
+    function reelUpFish(fishEl, optObj, startX, startY, targetX, targetY) {
+      const line = document.getElementById('fishingLine');
+      const hookGroup = document.getElementById('hookGroup');
+
+      const reelDuration = 450; // ms
+      const startTime = performance.now();
+
+      function animateReel(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / reelDuration, 1);
+        const easeProgress = progress * progress; // Ease In Quad (makin laju ke atas)
+
+        const currentX = targetX + (startX - targetX) * easeProgress;
+        const currentY = targetY + (startY - targetY) * easeProgress;
+
+        line.setAttribute('x2', currentX);
+        line.setAttribute('y2', currentY);
+        hookGroup.setAttribute('transform', `translate(${currentX - 7}, ${currentY})`);
+
+        // Gerakkan sekali elemen ikan mengikut kail
+        fishEl.style.left = `${currentX - fishEl.offsetWidth / 2}px`;
+        fishEl.style.top = `${currentY}px`;
+        fishEl.style.transform = `scale(${1 - progress * 0.4}) rotate(${progress * 20}deg)`;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateReel);
+        } else {
+          // Selesai tarik naik -> Sembunyikan kail & Semak jawapan
+          line.setAttribute('opacity', '0');
+          hookGroup.setAttribute('opacity', '0');
+          fishEl.style.opacity = '0';
+
+          verifyAnswer(optObj.isCorrect);
+        }
+      }
+
+      requestAnimationFrame(animateReel);
+    }
+
+    /* ==========================================
+       7. SEMAKAN JAWAPAN & MAKLUM BALAS
+       ========================================== */
+    function verifyAnswer(isCorrect) {
+      const modal = document.getElementById('feedbackModal');
+      const box = document.getElementById('feedbackBox');
+      const iconContainer = document.getElementById('feedbackIcon');
+      const title = document.getElementById('feedbackTitle');
+      const msg = document.getElementById('feedbackMsg');
+
+      if (isCorrect) {
+        score += 10;
+        correctCount++;
+        document.getElementById('scoreText').innerText = score;
+        playSound('correct');
+
+        iconContainer.className = "w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-3 shadow-lg bg-emerald-500 text-white shadow-emerald-500/40 animate-bounce";
+        iconContainer.innerHTML = '<i class="fa-solid fa-check"></i>';
+        title.innerText = "TAHNIAH! BETUL 🎉";
+        title.className = "text-2xl font-bold mb-1 text-emerald-400";
+        msg.innerText = "Tepat sekali! Anda mendapat +10 mata.";
+      } else {
+        playSound('wrong');
+
+        iconContainer.className = "w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-3 shadow-lg bg-rose-500 text-white shadow-rose-500/40 animate-pulse";
+        iconContainer.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        title.innerText = "ALAMAK! KURANG TEPAT ❌";
+        title.className = "text-2xl font-bold mb-1 text-rose-400";
+        msg.innerText = "Jawapan pilihan anda kurang tepat. Teruskan berusaha!";
+      }
+
+      // Tunjukkan Modal Paparan
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      box.classList.remove('scale-75');
+      box.classList.add('scale-100');
+    }
+
+    function closeFeedback() {
+      const modal = document.getElementById('feedbackModal');
+      const box = document.getElementById('feedbackBox');
+
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      box.classList.remove('scale-100');
+      box.classList.add('scale-75');
+
+      // Buka soalan seterusnya
+      currentQIndex++;
+      setTimeout(() => {
+        loadQuestion(currentQIndex);
+      }, 200);
+    }
+
+    /* ==========================================
+       8. SKRIN KEMENANGAN / KEPUTUSAN AKHIR
+       ========================================== */
+    function showVictoryScreen() {
+      const totalQ = currentQuestions.length;
+      const accuracy = Math.round((correctCount / totalQ) * 100);
+
+      document.getElementById('finalScore').innerText = score;
+      document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
+
+      // Menentukan Gelaran Nelayan
+      const rankBadge = document.getElementById('fishermanRank');
+      if (accuracy === 100) {
+        rankBadge.innerText = "👑 Jaguh Memancing Sains Terunggul";
+        rankBadge.className = "inline-block bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 font-extrabold px-5 py-2 rounded-full text-sm shadow-xl animate-bounce";
+      } else if (accuracy >= 70) {
+        rankBadge.innerText = "⭐ Nelayan Sains Handal";
+        rankBadge.className = "inline-block bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-bold px-4 py-1.5 rounded-full text-sm shadow-md";
+      } else {
+        rankBadge.innerText = "🐟 Nelayan Muda Pernafasan";
+        rankBadge.className = "inline-block bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold px-4 py-1.5 rounded-full text-sm shadow-md";
+      }
+
+      const modal = document.getElementById('victoryModal');
+      const card = document.getElementById('victoryCard');
+
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-90');
+      card.classList.add('scale-100');
+    }
+
+    function restartGame() {
+      startGame();
+    }
+  </script>
+</body>
+</html>
