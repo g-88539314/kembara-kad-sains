@@ -66,7 +66,7 @@ const characters = {
     title: 'Wira Penyahtinjaan',
     concept: 'Penyahtinjaan',
     image: 'assets/tinjatron.png',
-    card: 'assets/tinjatron-card.png',
+    card: 'assets/tinjatron-card..png',
     cls: 'tinjatron',
     desc: 'Ikuti perjalanan sisa makanan dalam badan.',
     facts: [
@@ -1027,6 +1027,7 @@ function showHeroCard(id, correct, newlyUnlocked = true) {
   document.getElementById('rewardSubtitle').textContent = `${c.title} • ${c.concept}`;
   document.getElementById('rewardCardImage').src = c.card;
   document.getElementById('rewardCardImage').alt = `Kad koleksi ${c.name}`;
+  document.getElementById('rewardCardImage').onerror = () => { document.getElementById('rewardCardImage').alt = `Imej kad ${c.name} tidak ditemui. Semak nama fail dalam folder assets.`; };
   document.getElementById('rewardScore').textContent = `${correct}/10 JAWAPAN BETUL`;
   modal.classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -1081,31 +1082,70 @@ function playHeroVictoryMusic() {
   });
 }
 
+// Terima keputusan daripada permainan di dalam iframe.
+// Menyokong mesej standard KKS dan beberapa format skor alternatif.
 window.addEventListener('message', event => {
-  const data = event.data;
-  if (!data || data.type !== 'KKS_GAME_RESULT') return;
-  if (!characters[data.hero] || Number(data.total) !== 10) return;
+  let data = event.data;
 
-  const correct = Math.max(0, Math.min(10, Math.round(Number(data.correct) || 0)));
-  const hero = data.hero;
+  // Sesetengah permainan/host menghantar data sebagai JSON string.
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch (_) { return; }
+  }
+  if (!data || typeof data !== 'object') return;
+
+  // Abaikan mesej yang bukan keputusan permainan Kembara Kad Sains.
+  const messageType = data.type || data.event || data.action;
+  if (!['KKS_GAME_RESULT', 'GAME_RESULT', 'gameResult', 'KKS_RESULT'].includes(messageType)) return;
+
+  const hero = String(data.hero || data.character || data.id || '').toLowerCase();
+  if (!characters[hero]) return;
+
+  // Pastikan mesej datang daripada iframe permainan yang sedang dibuka.
+  const gameFrame = document.getElementById('heroGameFrame');
+  if (gameFrame && event.source && event.source !== gameFrame.contentWindow) return;
+
+  let total = Number(data.total ?? data.totalQuestions ?? data.maxScore ?? 10);
+  let correct = Number(data.correct ?? data.correctAnswers ?? data.score ?? data.marks);
+  if (!Number.isFinite(correct)) return;
+  if (!Number.isFinite(total) || total <= 0) total = 10;
+
+  // Sesuaikan skor peratus (contohnya 90/100) kepada skala 10.
+  if (correct > total && correct <= 100 && total === 10) correct = correct / 10;
+  if (total !== 10) correct = (correct / total) * 10;
+  correct = Math.max(0, Math.min(10, Math.round(correct)));
+
   const passed = correct >= 8;
   const wasUnlocked = Boolean(state.unlocked[hero]);
+
   state.gamePassed[hero] = passed;
-  state.gameResult = { hero, correct, total: 10, passed };
+  state.gameResult = { hero, correct, total: 10, passed, receivedAt: Date.now() };
 
   if (passed) {
     state.unlocked[hero] = true;
     state.completed[hero] = true;
     if (!wasUnlocked) {
-      state.xp += 20;
-      state.score += 20;
+      state.xp = (Number(state.xp) || 0) + 20;
+      state.score = (Number(state.score) || 0) + 20;
     }
   }
 
   save();
-  render();
-  if (state.active === hero) openLearn(hero);
+
+  // Kemas kini statistik dan koleksi tanpa memusnahkan iframe permainan.
+  const xpNode = $('#xp');
+  const scoreNode = $('#score');
+  const cardsNode = $('#cards');
+  const missionsNode = $('#missions');
+  if (xpNode) xpNode.textContent = state.xp;
+  if (scoreNode) scoreNode.textContent = state.score;
+  if (cardsNode) cardsNode.textContent = Object.values(state.unlocked).filter(Boolean).length;
+  if (missionsNode) missionsNode.textContent = Object.values(state.completed).filter(Boolean).length;
+  renderHeroes();
+  renderCollection();
+  renderProgress();
+
   if (passed) {
+    // Buka kad sebenar terus selepas permainan tamat.
     showHeroCard(hero, correct, !wasUnlocked);
     toast(`🏆 ${characters[hero].name}: ${correct}/10! Kad wira berjaya dibuka.`);
   } else {
