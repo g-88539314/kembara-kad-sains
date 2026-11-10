@@ -14,9 +14,7 @@ const characters = {
       'Aktiviti cergas meningkatkan kadar pernafasan.'
     ],
     videos: [
-      { title: 'Video 1 — NAFASIO', id: 'i8V842RLKn4' },
-      { title: 'Video 2 — NAFASIO', id: 'jSXgey2GUc8' },
-      { title: 'Video 3 — NAFASIO', id: 'Cb7gGPqxOBE' }
+      { title: 'Video Pembelajaran — NAFASIO', id: '2-9_8BonJnQ' }
     ],
     questions: [
       ['Apakah tiga organ utama sistem pernafasan?', ['Hidung, trakea dan peparu','Jantung, perut dan usus','Buah pinggang, kulit dan peparu'], 0],
@@ -47,9 +45,7 @@ const characters = {
       'Peparu menyingkirkan karbon dioksida dan wap air.'
     ],
     videos: [
-      { title: 'Video 1 — KUMUHRION', id: 'KsbsohtkP9o' },
-      { title: 'Video 2 — KUMUHRION', id: 'PDn6KAlq_7o' },
-      { title: 'Video 3 — KUMUHRION', id: 'x2ghr7hvTg8' }
+      { title: 'Video Pembelajaran — KUMUHRION', id: 'V2oZR4YCby0' }
     ],
     questions: [
       ['Apakah maksud perkumuhan?', ['Proses mencerna makanan','Proses menyingkirkan bahan kumuh daripada badan','Proses mengambil oksigen'], 1],
@@ -80,9 +76,7 @@ const characters = {
       'Air dan makanan berserat membantu mencegah sembelit.'
     ],
     videos: [
-      { title: 'Video 1 — TINJATRON', id: '0VLAtKMe52s' },
-      { title: 'Video 2 — TINJATRON', id: 'nGsowMKN0aA' },
-      { title: 'Video 3 — TINJATRON', id: 'YVGy9Cpvz14' }
+      { title: 'Video Pembelajaran — TINJATRON', id: 'otnAF9OMiwM' }
     ],
     questions: [
       ['Apakah maksud penyahtinjaan?', ['Menyingkirkan air kencing','Menyingkirkan tinja melalui dubur','Mengambil oksigen'], 1],
@@ -113,9 +107,7 @@ const characters = {
       'Gerak balas membantu kita mengelakkan kecederaan.'
     ],
     videos: [
-      { title: 'Video 1 — IMPULSO', id: 'nm0LAH6A9V0' },
-      { title: 'Video 2 — IMPULSO', id: 'ChfZWiohkxk' },
-      { title: 'Video 3 — IMPULSO', id: 'YklrR1FYe9M' }
+      { title: 'Video Pembelajaran — IMPULSO', id: 'vkbzepAKOrc' }
     ],
     questions: [
       ['Apakah lima organ deria manusia?', ['Jantung, perut, usus, hati dan buah pinggang','Mata, hidung, telinga, lidah dan kulit','Peparu, kulit, hidung, perut dan otak'], 1],
@@ -132,6 +124,8 @@ const characters = {
   }
 };
 
+const VIDEO_VERSION = 'kks-single-video-v1';
+
 const EMPTY_FLAGS = () => ({
   nafasio: false,
   kumuhrion: false,
@@ -140,10 +134,10 @@ const EMPTY_FLAGS = () => ({
 });
 
 const EMPTY_VIDEO_PROGRESS = () => ({
-  nafasio: [false, false, false],
-  kumuhrion: [false, false, false],
-  tinjatron: [false, false, false],
-  impulso: [false, false, false]
+  nafasio: [false],
+  kumuhrion: [false],
+  tinjatron: [false],
+  impulso: [false]
 });
 
 let state = {
@@ -156,7 +150,8 @@ let state = {
   watched: EMPTY_FLAGS(),
   videoProgress: EMPTY_VIDEO_PROGRESS(),
   completed: EMPTY_FLAGS(),
-  unlocked: EMPTY_FLAGS()
+  unlocked: EMPTY_FLAGS(),
+  videoVersion: VIDEO_VERSION
 };
 
 const $ = s => document.querySelector(s);
@@ -189,7 +184,7 @@ function normalizeState() {
         ? state.videoProgress[id]
         : [];
 
-    state.videoProgress[id] = [0, 1, 2].map(i => existing[i] === true);
+    state.videoProgress[id] = [existing[0] === true];
   });
 }
 
@@ -213,6 +208,14 @@ function load() {
         ...state,
         ...old
       };
+
+      // Pautan video telah ditukar. Reset status tontonan lama supaya
+      // murid perlu menonton video baharu bagi setiap wira sekali sahaja.
+      if (state.videoVersion !== VIDEO_VERSION) {
+        state.videoProgress = EMPTY_VIDEO_PROGRESS();
+        state.watched = EMPTY_FLAGS();
+        state.videoVersion = VIDEO_VERSION;
+      }
     } catch (error) {
       console.warn(
         'Data lama tidak dapat dibaca. Menggunakan state baharu.',
@@ -326,7 +329,7 @@ function renderCollection() {
             ${
               videoDone
                 ? 'Video selesai — lengkapkan cabaran untuk buka'
-                : 'Tonton semua video dan lengkapkan cabaran'
+                : 'Tonton satu video dan lengkapkan cabaran'
             }
           </small>
         </div>
@@ -342,7 +345,7 @@ function renderProgress() {
     .map(([id, c]) => {
 
       const progress =
-        state.videoProgress[id] || [false, false, false];
+        state.videoProgress[id] || [false];
 
       const doneVideos = progress.filter(Boolean).length;
 
@@ -354,13 +357,13 @@ function renderProgress() {
         status = 'Kad Dikumpul';
       } else if (state.watched[id]) {
         width = '75%';
-        status = 'Semua video selesai';
+        status = 'Video selesai — cabaran dibuka';
       } else if (doneVideos > 0) {
         width = `${20 + doneVideos * 18}%`;
-        status = `${doneVideos}/3 video selesai`;
+        status = `${doneVideos}/1 video selesai`;
       } else if (state.access[id]) {
         width = '10%';
-        status = 'Video 1 tersedia';
+        status = 'Video pembelajaran tersedia';
       }
 
       return `
@@ -477,7 +480,7 @@ function firstIncompleteVideoIndex(id) {
 
   const progress =
     state.videoProgress[id] ||
-    [false, false, false];
+    [false];
 
   for (let i = 0; i < progress.length; i++) {
 
@@ -496,7 +499,7 @@ function markVideoComplete(id, index) {
   if (!Array.isArray(state.videoProgress[id])) {
 
     state.videoProgress[id] =
-      [false, false, false];
+      [false];
   }
 
   if (state.videoProgress[id][index]) {
@@ -527,7 +530,7 @@ function markVideoComplete(id, index) {
   } else {
 
     toast(
-      `🎉 Semua video ${characters[id].name} telah selesai! Cabaran dibuka.`
+      `🎉 Video ${characters[id].name} telah selesai! Cabaran dibuka.`
     );
 
     openLearn(id);
@@ -563,8 +566,8 @@ function createYouTubePlayer(id, videoIndex) {
 
             playerVars: {
               autoplay: 0,
-              controls: 0,
-              disablekb: 1,
+              controls: 1,
+              disablekb: 0,
               rel: 0,
               fs: 0,
               playsinline: 1
@@ -629,7 +632,7 @@ function renderVideoStage(id) {
 
   const progress =
     state.videoProgress[id] ||
-    [false, false, false];
+    [false];
 
   const current =
     firstIncompleteVideoIndex(id);
@@ -662,14 +665,14 @@ function renderVideoStage(id) {
             margin-bottom:10px;
           "
         >
-          ✅ SEMUA VIDEO ${c.name} SELESAI!
+          ✅ VIDEO PEMBELAJARAN ${c.name} SELESAI!
         </div>
 
         <div
           id="videoStatus"
           style="margin-bottom:14px;"
         >
-          Anda telah melengkapkan semua video pembelajaran.
+          Anda telah melengkapkan satu video pembelajaran. Cabaran kini dibuka.
         </div>
 
         <div class="actions">
@@ -706,7 +709,7 @@ function renderVideoStage(id) {
           margin-bottom:6px;
         "
       >
-        🎬 ${c.videos[current].title}
+        🎬 ${c.videos[current].title} (1 video sahaja)
       </div>
 
       <div
@@ -751,7 +754,7 @@ function renderVideoStage(id) {
                   : '🔒'
             }
 
-            Video ${i + 1}
+            Video pembelajaran
 
           </span>
 
@@ -812,8 +815,8 @@ function renderVideoStage(id) {
 
         ${
           current === 0
-            ? '▶️ Tonton video sehingga tamat untuk membuka Video 2.'
-            : `▶️ Tonton Video ${current + 1} sehingga tamat untuk meneruskan misi.`
+            ? '▶️ Tonton satu video sehingga tamat untuk membuka Cabaran.'
+            : '▶️ Tonton satu video sehingga tamat untuk membuka Cabaran.'
         }
 
       </div>
@@ -951,7 +954,7 @@ function startQuiz(id) {
   if (!state.watched[id]) {
 
     toast(
-      '🎬 Lengkapkan semua 3 video dahulu.'
+      '🎬 Sila tonton video sehingga tamat dahulu.'
     );
 
     return;
@@ -1077,7 +1080,7 @@ function finishQuiz() {
   if (!state.watched[quiz.id]) {
 
     toast(
-      '🔒 Lengkapkan semua video dahulu.'
+      '🔒 Sila tonton video sehingga tamat dahulu.'
     );
 
     return;
