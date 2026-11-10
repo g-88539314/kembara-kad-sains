@@ -656,9 +656,9 @@ function renderVideoStage(id) {
     if (state.gamePassed[id]) {
       return `
         <div class="video-box" style="margin-top:20px;padding:18px;border-radius:20px;background:#eefaf1;border:2px solid #a9dfb5;">
-          <h3 style="font-weight:900;font-size:18px;margin-bottom:8px;">🎉 TAHNIAH! PERMAINAN ${c.name} LULUS!</h3>
-          <p style="margin-bottom:14px;">Markah anda: <b>${result ? result.correct : 8}/10</b>. Anda layak ke cabaran seterusnya.</p>
-          <button class="primary" id="startQuiz">🚀 BUKA CABARAN SETERUSNYA</button>
+          <h3 style="font-weight:900;font-size:18px;margin-bottom:8px;">🏆 KAD WIRA ${c.name} TELAH DIBUKA!</h3>
+          <p style="margin-bottom:14px;">Markah permainan: <b>${result ? result.correct : 8}/10</b>. Anda berjaya mencapai syarat minimum 8/10.</p>
+          <button class="primary" id="showHeroCard">🎴 PAPARKAN KAD WIRA</button>
         </div>`;
     }
 
@@ -675,7 +675,7 @@ function renderVideoStage(id) {
       <div class="video-box" style="margin-top:20px;padding:18px;border-radius:20px;background:#f5f9ff;border:2px solid #c6dbef;">
         <h3 style="font-weight:900;font-size:18px;margin-bottom:8px;">🎮 PERMAINAN INTERAKTIF ${c.name}</h3>
         <p style="margin-bottom:14px;">Jawab 10 soalan dalam permainan. Anda perlu mendapat sekurang-kurangnya <b>8/10</b> untuk membuka cabaran seterusnya.</p>
-        <iframe id="heroGameFrame" src="${gameFile}" title="Permainan ${c.name}" style="display:block;width:100%;height:1100px;min-height:1100px;max-height:none;border:0;border-radius:16px;background:#071525;" allow="fullscreen; autoplay"></iframe>
+        <iframe id="heroGameFrame" src="${gameFile}" title="Permainan ${c.name}" style="display:block;width:100%;height:82vh;min-height:760px;max-height:1100px;border:0;border-radius:16px;background:#071525;" allow="fullscreen; autoplay"></iframe>
       </div>`;
   }
 
@@ -923,6 +923,11 @@ function openLearn(id) {
     }
   }
 
+  const showHeroCardButton = $('#showHeroCard');
+  if (showHeroCardButton) {
+    showHeroCardButton.onclick = () => showHeroCard(id, state.gameResult?.correct || 8, false);
+  }
+
   const retryGameButton = $('#retryGame');
   if (retryGameButton) {
     retryGameButton.onclick = () => {
@@ -941,22 +946,171 @@ function openLearn(id) {
   };
 }
 
+// Kad ganjaran wira: animasi dan muzik kemenangan menggunakan Web Audio API.
+let heroRewardAudio = null;
+let heroRewardModalReady = false;
+
+function prepareHeroRewardModal() {
+  if (heroRewardModalReady) return;
+  heroRewardModalReady = true;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #heroRewardModal{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:18px;background:radial-gradient(circle at 50% 35%,rgba(56,189,248,.38),rgba(4,17,48,.94) 68%);backdrop-filter:blur(8px);overflow:hidden}
+    #heroRewardModal.show{display:flex;animation:rewardFade .45s ease both}
+    .reward-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+    .reward-confetti i{position:absolute;top:-12%;left:var(--x);width:9px;height:17px;border-radius:3px;background:var(--c);animation:rewardFall var(--d) linear var(--delay) infinite;transform:rotate(var(--r))}
+    .reward-content{position:relative;z-index:2;width:min(520px,100%);padding:25px 22px 22px;border:2px solid rgba(255,255,255,.8);border-radius:30px;text-align:center;color:#fff;background:linear-gradient(145deg,rgba(15,43,100,.97),rgba(71,28,139,.96));box-shadow:0 0 35px rgba(250,204,21,.45),0 25px 80px rgba(0,0,0,.45);animation:rewardPop .75s cubic-bezier(.16,1.35,.45,1) both}
+    .reward-crown{font-size:48px;filter:drop-shadow(0 0 12px #fde047);animation:rewardBounce 1s ease-in-out infinite alternate}
+    .reward-title{font-size:clamp(24px,5vw,36px);font-weight:1000;line-height:1.1;color:#fde68a;text-shadow:0 3px 0 #92400e,0 0 20px #facc15;margin:5px 0 8px}
+    .reward-card-wrap{width:min(280px,75vw);height:310px;margin:12px auto 16px;display:flex;align-items:center;justify-content:center;perspective:1000px;position:relative}
+    .reward-card-wrap:before{content:"";position:absolute;inset:12%;border-radius:50%;background:#facc15;filter:blur(35px);opacity:.55;animation:rewardGlow 1.5s ease-in-out infinite alternate}
+    .reward-card{position:relative;max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 12px 20px rgba(0,0,0,.5));animation:rewardCardReveal 1.2s cubic-bezier(.2,1.4,.4,1) both, rewardFloat 2.8s ease-in-out 1.2s infinite}
+    .reward-score{display:inline-block;padding:9px 18px;border-radius:30px;background:linear-gradient(90deg,#facc15,#fb923c);color:#422006;font-weight:1000;font-size:18px;box-shadow:0 5px 18px #facc1555}
+    .reward-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:17px}
+    .reward-actions button{border:0;border-radius:15px;padding:12px 17px;font-weight:900;cursor:pointer}
+    #rewardMusicBtn{background:#fef08a;color:#713f12}#rewardCloseBtn{background:#fff;color:#17427c}
+    @keyframes rewardFade{from{opacity:0}to{opacity:1}}
+    @keyframes rewardPop{0%{transform:translateY(60px) scale(.55);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+    @keyframes rewardCardReveal{0%{transform:rotateY(180deg) scale(.25);opacity:0}70%{transform:rotateY(-12deg) scale(1.08);opacity:1}100%{transform:rotateY(0) scale(1)}}
+    @keyframes rewardFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-9px) rotate(1deg)}}
+    @keyframes rewardGlow{from{transform:scale(.8);opacity:.35}to{transform:scale(1.2);opacity:.75}}
+    @keyframes rewardBounce{from{transform:translateY(0) rotate(-8deg)}to{transform:translateY(-9px) rotate(8deg)}}
+    @keyframes rewardFall{to{transform:translate3d(var(--drift),115vh,0) rotate(720deg)}}
+    @media(prefers-reduced-motion:reduce){#heroRewardModal *,#heroRewardModal *:before{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+  `;
+  document.head.appendChild(style);
+
+  const modal = document.createElement('div');
+  modal.id = 'heroRewardModal';
+  modal.innerHTML = `
+    <div class="reward-confetti" id="rewardConfetti"></div>
+    <div class="reward-content" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
+      <div class="reward-crown">👑✨🎉</div>
+      <div class="reward-title" id="rewardTitle">TAHNIAH, WIRA SAINS!</div>
+      <p id="rewardSubtitle">Anda berjaya membuka kad wira!</p>
+      <div class="reward-card-wrap"><img class="reward-card" id="rewardCardImage" src="" alt="Kad wira sains yang berjaya dibuka"></div>
+      <div class="reward-score" id="rewardScore">10/10 JAWAPAN BETUL</div>
+      <p style="margin:12px 0 0;font-weight:800;color:#dbeafe">Kad baharu telah ditambahkan ke Koleksi Kad Saya.</p>
+      <div class="reward-actions">
+        <button id="rewardMusicBtn" type="button">🔊 MAINKAN MUZIK KEMENANGAN</button>
+        <button id="rewardCloseBtn" type="button">✨ TERUSKAN</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const confetti = modal.querySelector('#rewardConfetti');
+  const colors = ['#fde047','#fb7185','#38bdf8','#4ade80','#c084fc','#ffffff'];
+  for (let i = 0; i < 54; i++) {
+    const bit = document.createElement('i');
+    bit.style.setProperty('--x', `${Math.random() * 100}%`);
+    bit.style.setProperty('--c', colors[i % colors.length]);
+    bit.style.setProperty('--d', `${2.6 + Math.random() * 3.2}s`);
+    bit.style.setProperty('--delay', `${Math.random() * 2.5}s`);
+    bit.style.setProperty('--r', `${Math.random() * 180}deg`);
+    bit.style.setProperty('--drift', `${Math.random() * 180 - 90}px`);
+    confetti.appendChild(bit);
+  }
+  modal.querySelector('#rewardCloseBtn').onclick = closeHeroCard;
+  modal.querySelector('#rewardMusicBtn').onclick = playHeroVictoryMusic;
+  modal.addEventListener('click', event => {
+    if (event.target === modal) closeHeroCard();
+  });
+}
+
+function showHeroCard(id, correct, newlyUnlocked = true) {
+  const c = characters[id];
+  if (!c) return;
+  prepareHeroRewardModal();
+  const modal = document.getElementById('heroRewardModal');
+  document.getElementById('rewardTitle').textContent = newlyUnlocked ? `TAHNIAH! ${c.name} DIBUKA!` : `KAD WIRA ${c.name}`;
+  document.getElementById('rewardSubtitle').textContent = `${c.title} • ${c.concept}`;
+  document.getElementById('rewardCardImage').src = c.card;
+  document.getElementById('rewardCardImage').alt = `Kad koleksi ${c.name}`;
+  document.getElementById('rewardScore').textContent = `${correct}/10 JAWAPAN BETUL`;
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  if (newlyUnlocked) playHeroVictoryMusic();
+}
+
+function closeHeroCard() {
+  const modal = document.getElementById('heroRewardModal');
+  if (modal) modal.classList.remove('show');
+  document.body.style.overflow = '';
+  if (heroRewardAudio && heroRewardAudio.state !== 'closed') {
+    heroRewardAudio.close().catch(() => {});
+    heroRewardAudio = null;
+  }
+}
+
+function playHeroVictoryMusic() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    toast('Peranti ini tidak menyokong audio automatik.');
+    return;
+  }
+  if (!heroRewardAudio || heroRewardAudio.state === 'closed') heroRewardAudio = new AudioContextClass();
+  const ctx = heroRewardAudio;
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime;
+  // Melodi kemenangan asli, ceria dan ringkas (tiada fail muzik luaran).
+  const melody = [659.25,783.99,987.77,1318.51,1174.66,1318.51,1567.98];
+  melody.forEach((frequency, index) => {
+    const start = now + index * 0.19;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = index % 2 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.16, start + 0.035);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.34);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(start); osc.stop(start + 0.36);
+  });
+  // Chord penutup seperti bunyi kemenangan.
+  [523.25,659.25,783.99,1046.5].forEach((frequency, index) => {
+    const start = now + 1.42;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.11, start + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.05);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(start); osc.stop(start + 1.1);
+  });
+}
+
 window.addEventListener('message', event => {
   const data = event.data;
   if (!data || data.type !== 'KKS_GAME_RESULT') return;
-  if (!characters[data.hero] || data.total !== 10) return;
+  if (!characters[data.hero] || Number(data.total) !== 10) return;
 
-  const correct = Math.max(0, Math.min(10, Number(data.correct) || 0));
+  const correct = Math.max(0, Math.min(10, Math.round(Number(data.correct) || 0)));
   const hero = data.hero;
-  state.gamePassed[hero] = correct >= 8;
-  state.gameResult = { hero, correct, total: 10 };
+  const passed = correct >= 8;
+  const wasUnlocked = Boolean(state.unlocked[hero]);
+  state.gamePassed[hero] = passed;
+  state.gameResult = { hero, correct, total: 10, passed };
+
+  if (passed) {
+    state.unlocked[hero] = true;
+    state.completed[hero] = true;
+    if (!wasUnlocked) {
+      state.xp += 20;
+      state.score += 20;
+    }
+  }
+
   save();
-  renderProgress();
-  renderCollection();
+  render();
   if (state.active === hero) openLearn(hero);
-  toast(correct >= 8
-    ? `🎉 ${characters[hero].name}: ${correct}/10! Cabaran seterusnya dibuka.`
-    : `💪 ${characters[hero].name}: ${correct}/10. Cuba permainan sekali lagi.`);
+  if (passed) {
+    showHeroCard(hero, correct, !wasUnlocked);
+    toast(`🏆 ${characters[hero].name}: ${correct}/10! Kad wira berjaya dibuka.`);
+  } else {
+    toast(`💪 ${characters[hero].name}: ${correct}/10. Anda perlu sekurang-kurangnya 8/10. Cuba lagi!`);
+  }
 });
 
 let quiz = {
